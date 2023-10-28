@@ -47,3 +47,34 @@ def _album_dto_from_result(result: Any) -> AlbumDto:
         cocoa_start_date=result[3],
         parent_album=str(result[4])
     )
+
+
+@dataclass
+class AssetCountDto:
+    asset_count: int
+    asset_count_no_album: int
+
+
+def get_album_asset_counts(database_file_path: str) -> AssetCountDto:
+    """
+    Returns the number of assets in the database and the number of assets that are not part of any album.
+
+    :param database_file_path: Library database file path
+    :return: Asset count DTO
+    """
+    with sqlite3.connect(f'file:{database_file_path}?mode=ro', uri=True) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT COUNT(assets.Z_PK) AS ASSET_CNT
+                 , COUNT(assets.Z_PK) - COUNT(album_mapping.Z_3ASSETS) AS ASSET_CNT_NO_ALBUM
+            FROM ZASSET assets
+            LEFT JOIN Z_28ASSETS album_mapping ON assets.Z_PK = album_mapping.Z_3ASSETS
+            """
+        )
+        result = cursor.fetchall()[0]
+
+        return AssetCountDto(
+            asset_count=result[0],
+            asset_count_no_album=result[1]
+        )

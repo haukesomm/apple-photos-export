@@ -1,6 +1,6 @@
 import argparse
 
-from app.album import service as album_service
+from app.service import ExporterService
 
 
 def main():
@@ -25,15 +25,29 @@ def main():
     )
     export_parser.add_argument(
         'destination',
-        help='Path of the destination directory'
+        help='path of the destination directory'
+    )
+    export_parser.add_argument(
+        '-r', '--restore-original-filenames',
+        action='store_true',
+        dest='restore_original_filenames',
+        help='restore the original filenames of the photos',
+    )
+    export_parser.add_argument(
+        '-d', '--dry-run',
+        action='store_true',
+        dest='dry_run',
+        help='do not actually export the photos',
     )
 
     parsed_args = parser.parse_args()
 
+    service = ExporterService(parsed_args.library)
+
     if parsed_args.action == "list-albums":
-        album_service.print_album_tree(parsed_args.library)
+        service.print_album_tree()
     elif parsed_args.action == "export":
-        print("Exporting photos is not yet implemented")
+        service.export_assets(parsed_args.destination, parsed_args.restore_original_filenames, parsed_args.dry_run)
 
 
 if __name__ == '__main__':

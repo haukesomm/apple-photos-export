@@ -5,7 +5,7 @@ from app.album import service as album_service
 
 def main():
     parser = argparse.ArgumentParser(
-        prog='Apple Photos Library Exporter',
+        prog='photoslibrary-exporter',
         description='Export photos from the macOS Photos app, preserving the original album hierarchy.',
         add_help=True
     )

@@ -2,7 +2,7 @@ from typing import List
 
 from treelib import Tree
 
-from app.model import Album, AlbumKind
+from photoslibrary_exporter.model import Album, AlbumKind
 
 
 def generate_ascii_album_tree(albums: List[Album]):

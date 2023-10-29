@@ -1,7 +1,7 @@
 # Apple Photos Library Exporter
 
 This program exports all images and videos from an Apple Photos Library to a local directory, preserving the original
-album structure and making the files easily accessible with any other program.
+album structure and making the files easily accessible without the need to use the native Photos app.
 It is intended for backup purposes and does not modify the library in any way.
 
 The project works by reverse-engineering the Apple Photos Library database and file structure. Thus, it is not
@@ -27,5 +27,7 @@ Here is an example command that simulates an export of all images and videos fro
 `~/Pictures/Export` directory and restores the original file names:
 
 ```shell
-./photoslibrary-exporter --restore-filenames --dry-run ~/Pictures/Photos\ Library.photoslibrary/ ~/Pictures/Export
+./photoslibrary-exporter export \
+    --restore-original-filenames --dry-run \
+    ~/Pictures/Photos\ Library.photoslibrary ~/Desktop/Test
 ```

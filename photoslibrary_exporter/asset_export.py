@@ -5,7 +5,8 @@ from typing import List
 
 from colors import color
 
-from app.model import ExportAsset
+from photoslibrary_exporter import asset_list, library_file
+from photoslibrary_exporter.model import ExportAsset
 
 
 class AssetExporter(ABC):
@@ -84,3 +85,19 @@ class AssetExporterImpl(AssetExporter):
 
     def _on_finished(self) -> None:
         print(color('Done exporting assets.', fg='green'))
+
+
+def export_assets(library_file_path: str, destination_path: str, restore_filenames: bool, dry_run: bool) -> None:
+    """
+    Exports all assets from the library to the given destination path.
+    """
+
+    db_file_path = library_file.get_photos_db_path(library_file_path)
+    assets = asset_list.get_export_assets(db_file_path, restore_filenames)
+
+    if dry_run:
+        exporter = DryRunAssetExporter()
+    else:
+        exporter = AssetExporterImpl()
+
+    exporter.export(destination_path, library_file_path, assets)

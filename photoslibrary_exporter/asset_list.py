@@ -1,8 +1,8 @@
 from typing import List
 
-from app import util, repo
-from app.model import ExportAsset
-from app.repo import ExportAssetDto
+from photoslibrary_exporter import cocoa, repo
+from photoslibrary_exporter.model import ExportAsset
+from photoslibrary_exporter.repo import ExportAssetDto
 
 
 def get_export_assets(db_file_path: str, restore_filenames: bool) -> List[ExportAsset]:
@@ -16,7 +16,7 @@ def get_export_assets(db_file_path: str, restore_filenames: bool) -> List[Export
 
 def _export_asset_from_dto(dto: ExportAssetDto, restore_filenames: bool) -> ExportAsset:
     filename = dto.asset_original_filename if restore_filenames else dto.asset_filename
-    timestamp = util.cocoa_timestamp_to_datetime(dto.cocoa_album_start_date) if dto.cocoa_album_start_date else None
+    timestamp = cocoa.cocoa_timestamp_to_datetime(dto.cocoa_album_start_date) if dto.cocoa_album_start_date else None
 
     return ExportAsset(
         asset_id=dto.asset_id,

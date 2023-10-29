@@ -1,12 +1,16 @@
 import argparse
 
-from app.service import ExporterService
+from photoslibrary_exporter import album_list, asset_export, library_file
 
 
-def main():
+def run_cli():
+    """
+    Runs the command line interface.
+    """
+
     parser = argparse.ArgumentParser(
         prog='photoslibrary-exporter',
-        description='Export photos from the macOS Photos app, preserving the original album hierarchy.',
+        description='Export photos from the macOS Photos photoslibrary_exporter, preserving the original album hierarchy.',
         add_help=True
     )
 
@@ -42,13 +46,15 @@ def main():
 
     parsed_args = parser.parse_args()
 
-    service = ExporterService(parsed_args.library)
+    library_file_path = parsed_args.library
+    database_file_path = library_file.get_photos_db_path(library_file_path)
 
     if parsed_args.action == "list-albums":
-        service.print_album_tree()
+        album_list.print_album_tree(database_file_path)
     elif parsed_args.action == "export":
-        service.export_assets(parsed_args.destination, parsed_args.restore_original_filenames, parsed_args.dry_run)
-
-
-if __name__ == '__main__':
-    main()
+        asset_export.export_assets(
+            library_file_path,
+            parsed_args.destination,
+            parsed_args.restore_original_filenames,
+            parsed_args.dry_run
+        )

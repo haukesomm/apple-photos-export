@@ -36,5 +36,5 @@ class ExportAsset:
     asset_directory: str
     asset_filename: str
     dest_filename: str
-    album_path: str
+    album_path: Optional[str]
     album_timestamp_start: Optional[datetime]

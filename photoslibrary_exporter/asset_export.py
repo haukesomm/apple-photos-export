@@ -38,19 +38,22 @@ class AssetExporter(ABC):
         asset_count = len(export_asset_list)
 
         for index, asset in enumerate(export_asset_list):
+            if index == 100:
+                break
+
             asset_path = os.path.join(library_file_path, 'originals', asset.asset_directory, asset.asset_filename)
             output_path = os.path.join(
                 destination_path,
-                asset.album_path.removeprefix('/').removeprefix('\\'),
+                asset.album_path if asset.album_path else '',
                 asset.dest_filename
             )
 
             print(
                 ''.join([
                     color(f'({index + 1}/{asset_count})', fg='yellow'),
-                    ' Exporting ',
+                    color(' Exporting ', fg='silver'),
                     color(asset.asset_filename, fg='grey'),
-                    ' to ',
+                    color(' to ', fg='silver'),
                     color(output_path, fg='grey')
                 ])
             )

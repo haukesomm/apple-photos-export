@@ -112,7 +112,7 @@ def get_export_asset_data(database_file_path: str) -> List[ExportAssetDto]:
             
                 SELECT child.Z_PK
                      , child.ZPARENTFOLDER
-                     , album.path || '/' || child.ZTITLE AS path
+                     , printf('%s%s%s', album.path, child.ZTITLE, '/') AS path
                 FROM ZGENERICALBUM child
                 JOIN ALBUM_PATH_CTE album
                   ON album.Z_PK = child.ZPARENTFOLDER
@@ -122,7 +122,7 @@ def get_export_asset_data(database_file_path: str) -> List[ExportAssetDto]:
                  , assets.ZDIRECTORY AS ASSET_DIRECTORY
                  , assets.ZFILENAME AS ASSET_FILENAME
                  , attribs.ZORIGINALFILENAME AS ASSET_ORIGINAL_FILENAME
-                 , coalesce(album_path.path, '/') AS ALBUM_PATH
+                 , album_path.path AS ALBUM_PATH
                  , album.ZSTARTDATE AS ALBUM_START_DATE
             FROM ZASSET assets
             LEFT JOIN ZADDITIONALASSETATTRIBUTES attribs ON assets.Z_PK = attribs.ZASSET

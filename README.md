@@ -8,6 +8,14 @@ The project works by reverse-engineering the Apple Photos Library database and f
 guaranteed to work with future versions of the Photos app or at all. Use it at your own risk and always keep a backup
 of your library.
 
+## Compatibility
+
+The program has been tested on the following OSs with the following versions of the Photos app:
+
+| OS                  | Photos Version  |
+|---------------------|-----------------|
+| macOS 14.0 (Sonoma) | 9.0 (608.2.113) |
+
 ## Highlights
 
 - Exports all images and videos from the Photos Library to a local directory

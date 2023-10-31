@@ -1,6 +1,9 @@
 import argparse
 
-from photoslibrary_exporter import album_list, asset_export, library_file
+from photoslibrary_exporter import album_list, library_file
+from photoslibrary_exporter.export import exporter
+from photoslibrary_exporter.export.strategy import PlainExportStrategy, YearMonthExportStrategy, \
+    YearMonthAlbumExportStrategy, AlbumExportStrategy
 
 
 def run_cli():
@@ -10,7 +13,7 @@ def run_cli():
 
     parser = argparse.ArgumentParser(
         prog='photoslibrary-exporter',
-        description='Export photos from the macOS Photos photoslibrary_exporter, preserving the original album hierarchy.',
+        description='Export photos from the macOS Photos library, organized by album and/or date.',
         add_help=True
     )
 
@@ -31,8 +34,37 @@ def run_cli():
         'destination',
         help='path of the destination directory'
     )
+    export_parser_strategy = export_parser.add_mutually_exclusive_group()
+    export_parser_strategy.add_argument(
+        '-p', '--plain',
+        help='export photos to the root of the export directory',
+        action='store_const',
+        dest='strategy',
+        const=PlainExportStrategy(),
+    )
+    export_parser_strategy.add_argument(
+        '-a', '--album',
+        help='export photos grouped by album',
+        action='store_const',
+        dest='strategy',
+        const=AlbumExportStrategy(),
+    )
+    export_parser_strategy.add_argument(
+        '-y', '--year-month',
+        help='export photos grouped by year/month',
+        action='store_const',
+        dest='strategy',
+        const=YearMonthExportStrategy(),
+    )
+    export_parser_strategy.add_argument(
+        '-m', '--year-month-album',
+        help='export photos grouped by year/month/album',
+        action='store_const',
+        dest='strategy',
+        const=YearMonthAlbumExportStrategy(),
+    )
     export_parser.add_argument(
-        '-r', '--restore-original-filenames',
+        '-o', '--restore-original-filenames',
         action='store_true',
         dest='restore_original_filenames',
         help='restore the original filenames of the photos',
@@ -52,9 +84,9 @@ def run_cli():
     if parsed_args.action == "list-albums":
         album_list.print_album_tree(database_file_path)
     elif parsed_args.action == "export":
-        asset_export.export_assets(
+        exporter.export_assets(
             library_file_path,
-            parsed_args.destination,
+            parsed_args.strategy or PlainExportStrategy(),
             parsed_args.restore_original_filenames,
             parsed_args.dry_run
         )

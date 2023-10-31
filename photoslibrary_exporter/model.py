@@ -1,3 +1,4 @@
+import os.path
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -28,13 +29,30 @@ class Album:
 
 
 @dataclass
-class ExportAsset:
+class AssetWithAlbumInfo:
     """
-    Data class representing an asset that is to be exported.
+    Data class representing an asset from the library, including information about the album it is in.
     """
     asset_id: str
     asset_directory: str
     asset_filename: str
-    dest_filename: str
-    album_path: Optional[str]
-    album_timestamp_start: Optional[datetime]
+    asset_original_filename: str
+    asset_preferred_filename: str
+    asset_date: datetime
+    album_path: str
+    album_start_date: Optional[datetime]
+
+    def asset_path(self):
+        return os.path.join(self.asset_directory, self.asset_filename)
+
+
+@dataclass
+class ExportAsset:
+    """
+    Data class representing an asset that is to be exported.
+
+    The paths have previously been computed based on the export strategy the user has chosen.
+    """
+    asset_id: str
+    library_asset_path: str
+    exported_asset_path: str

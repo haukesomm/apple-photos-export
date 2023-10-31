@@ -81,16 +81,17 @@ def get_album_asset_counts(database_file_path: str) -> AssetCountDto:
 
 
 @dataclass
-class ExportAssetDto:
+class AssetWithAlbumInfoDto:
     asset_id: str
     asset_directory: str
     asset_filename: str
     asset_original_filename: str
-    album_path: str
+    asset_date: str
+    album_path: Optional[str]
     cocoa_album_start_date: Optional[str]
 
 
-def get_export_asset_data(database_file_path: str) -> List[ExportAssetDto]:
+def get_asset_data_with_album_info(database_file_path: str) -> List[AssetWithAlbumInfoDto]:
     """
     Returns a list of all assets together with their original filenames and album information.
 
@@ -112,7 +113,7 @@ def get_export_asset_data(database_file_path: str) -> List[ExportAssetDto]:
             
                 SELECT child.Z_PK
                      , child.ZPARENTFOLDER
-                     , printf('%s%s%s', album.path, child.ZTITLE, '/') AS path
+                     , printf('%s%s/', album.path, child.ZTITLE) AS path
                 FROM ZGENERICALBUM child
                 JOIN ALBUM_PATH_CTE album
                   ON album.Z_PK = child.ZPARENTFOLDER
@@ -122,6 +123,7 @@ def get_export_asset_data(database_file_path: str) -> List[ExportAssetDto]:
                  , assets.ZDIRECTORY AS ASSET_DIRECTORY
                  , assets.ZFILENAME AS ASSET_FILENAME
                  , attribs.ZORIGINALFILENAME AS ASSET_ORIGINAL_FILENAME
+                 , assets.ZDATECREATED AS ASSET_DATE
                  , album_path.path AS ALBUM_PATH
                  , album.ZSTARTDATE AS ALBUM_START_DATE
             FROM ZASSET assets
@@ -133,15 +135,16 @@ def get_export_asset_data(database_file_path: str) -> List[ExportAssetDto]:
         )
         results = cursor.fetchall()
 
-        return list(map(_export_asset_dto_from_result, results))
+        return list(map(_parse_asset_album_info_result, results))
 
 
-def _export_asset_dto_from_result(result: Any) -> ExportAssetDto:
-    return ExportAssetDto(
+def _parse_asset_album_info_result(result: Any) -> AssetWithAlbumInfoDto:
+    return AssetWithAlbumInfoDto(
         asset_id=str(result[0]),
         asset_directory=result[1],
         asset_filename=result[2],
         asset_original_filename=result[3],
-        album_path=result[4],
-        cocoa_album_start_date=result[5]
+        asset_date=result[4],
+        album_path=result[5],
+        cocoa_album_start_date=result[6]
     )

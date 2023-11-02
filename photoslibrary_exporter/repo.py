@@ -2,6 +2,8 @@ import sqlite3
 from dataclasses import dataclass
 from typing import List, Any, Optional
 
+from photoslibrary_exporter.model import AlbumKind
+
 
 @dataclass
 class AlbumDto:
@@ -91,17 +93,19 @@ class AssetWithAlbumInfoDto:
     cocoa_album_start_date: Optional[str]
 
 
-def get_asset_data_with_album_info(database_file_path: str) -> List[AssetWithAlbumInfoDto]:
+def get_asset_data_with_album_info(database_file_path: str, excluded_ids: List[str]) -> List[AssetWithAlbumInfoDto]:
     """
     Returns a list of all assets together with their original filenames and album information.
 
     :param database_file_path: Library database file path
+    :param excluded_ids: List of album ids that should be excluded from the export
     :return: List of export asset DTOs
     """
+
     with sqlite3.connect(f'file:{database_file_path}?mode=ro', uri=True) as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            """
+
+        sql = f"""
             WITH RECURSIVE ALBUM_PATH_CTE AS (
                 SELECT Z_PK
                      , ZPARENTFOLDER
@@ -131,20 +135,25 @@ def get_asset_data_with_album_info(database_file_path: str) -> List[AssetWithAlb
             LEFT JOIN Z_28ASSETS album_mapping ON assets.Z_PK = album_mapping.Z_3ASSETS
             LEFT JOIN ZGENERICALBUM album ON album_mapping.Z_28ALBUMS = album.Z_PK
             LEFT JOIN ALBUM_PATH_CTE album_path ON album.Z_PK = album_path.Z_PK
+            WHERE (album.ZKIND IS NULL OR album.ZKIND IN (?))
+               AND (album.Z_PK IS NULL OR album.Z_PK NOT IN (?))
             """
-        )
+
+        allowed_album_kinds = [k.value for k in (AlbumKind.ROOT, AlbumKind.USER_ALBUM, AlbumKind.USER_FOLDER)]
+        excluded_ids_string = ', '.join(excluded_ids)
+        cursor.execute(sql, (*allowed_album_kinds, excluded_ids_string))
+
         results = cursor.fetchall()
 
-        return list(map(_parse_asset_album_info_result, results))
+        def parse_dto(result: Any) -> AssetWithAlbumInfoDto:
+            return AssetWithAlbumInfoDto(
+                asset_id=str(result[0]),
+                asset_directory=result[1],
+                asset_filename=result[2],
+                asset_original_filename=result[3],
+                asset_date=result[4],
+                album_path=result[5],
+                cocoa_album_start_date=result[6]
+            )
 
-
-def _parse_asset_album_info_result(result: Any) -> AssetWithAlbumInfoDto:
-    return AssetWithAlbumInfoDto(
-        asset_id=str(result[0]),
-        asset_directory=result[1],
-        asset_filename=result[2],
-        asset_original_filename=result[3],
-        asset_date=result[4],
-        album_path=result[5],
-        cocoa_album_start_date=result[6]
-    )
+        return list(map(parse_dto, results))

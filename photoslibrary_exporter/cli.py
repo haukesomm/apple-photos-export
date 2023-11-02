@@ -70,6 +70,18 @@ def run_cli():
         help='restore the original filenames of the photos',
     )
     export_parser.add_argument(
+        '-f', '--flatten-albums',
+        help='flatten the album hierarchy',
+        action='store_true',
+    )
+    export_parser.add_argument(
+        '-e', '--exclude-albums',
+        help='exclude the specified album ids from the export',
+        nargs='+',
+        type=str,
+        dest='exclude_albums',
+    )
+    export_parser.add_argument(
         '-d', '--dry-run',
         action='store_true',
         dest='dry_run',
@@ -88,5 +100,8 @@ def run_cli():
             library_file_path,
             parsed_args.strategy or PlainExportStrategy(),
             parsed_args.restore_original_filenames,
-            parsed_args.dry_run
+            parsed_args.dry_run,
+            parsed_args.flatten_albums,
+            parsed_args.exclude_albums or [],
+            parsed_args.destination
         )

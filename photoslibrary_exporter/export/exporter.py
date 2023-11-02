@@ -6,7 +6,7 @@ from typing import List
 from colors import color
 
 from photoslibrary_exporter import asset_list, library_file
-from photoslibrary_exporter.export.strategy import ExportStrategy, YearMonthAlbumExportStrategy
+from photoslibrary_exporter.export.strategy import ExportStrategy
 from photoslibrary_exporter.model import ExportAsset, AssetWithAlbumInfo
 
 
@@ -35,14 +35,15 @@ class AssetExporter(ABC):
         """
         pass
 
-    def export(self, assets: List[AssetWithAlbumInfo]) -> None:
+    def export(self, assets: List[AssetWithAlbumInfo], library_path: str, output_path: str) -> None:
         """
         Exports the given list of assets to the given destination path.
         """
         asset_count = len(assets)
+        library_photos_path = os.path.join(library_path, 'originals')
 
         for index, asset in enumerate(assets):
-            export_asset = self._strategy.get_export_asset(asset)
+            export_asset = self._strategy.get_export_asset(asset, library_photos_path, output_path)
 
             print(
                 ''.join([
@@ -79,6 +80,7 @@ class AssetExporterImpl(AssetExporter):
     """
 
     def _export_single_asset(self, export_asset: ExportAsset) -> None:
+        # TODO: Handle errors (log) and continue
         os.makedirs(os.path.dirname(export_asset.exported_asset_path), exist_ok=True)
         shutil.copy(export_asset.library_asset_path, export_asset.exported_asset_path)
 
@@ -86,17 +88,18 @@ class AssetExporterImpl(AssetExporter):
         print(color('Done exporting assets.', fg='green'))
 
 
-def export_assets(library_file_path: str, strategy: ExportStrategy, restore_original_filename: bool, dry_run: bool) -> None:
+def export_assets(library_file_path: str, strategy: ExportStrategy, restore_original_filename: bool, dry_run: bool, flatten_albums: bool, excluded_ids: List[str], output_path: str) -> None:
     """
     Exports all assets from the library to the given destination path.
     """
 
     db_file_path = library_file.get_photos_db_path(library_file_path)
-    assets = asset_list.get_assets_with_album_info(db_file_path, restore_original_filename)
+    assets = asset_list.get_assets_with_album_info(
+        db_file_path, restore_original_filename, flatten_albums, excluded_ids)
 
     if dry_run:
         exporter = DryRunAssetExporter(strategy)
     else:
         exporter = AssetExporterImpl(strategy)
 
-    exporter.export(assets)
+    exporter.export(assets, library_file_path, output_path)

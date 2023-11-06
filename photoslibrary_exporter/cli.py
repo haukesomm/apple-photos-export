@@ -1,9 +1,22 @@
 import argparse
 
 from photoslibrary_exporter import album_list, library_file
+from photoslibrary_exporter.config import Config
 from photoslibrary_exporter.export import exporter
 from photoslibrary_exporter.export.strategy import PlainExportStrategy, YearMonthExportStrategy, \
     YearMonthAlbumExportStrategy, AlbumExportStrategy
+
+
+def _args_to_config(parsed_args: argparse.Namespace) -> Config:
+    return Config(
+        library_path=parsed_args.library,
+        destination_path=parsed_args.destination,
+        export_strategy=parsed_args.strategy or PlainExportStrategy(),
+        restore_original_filenames=parsed_args.restore_original_filenames,
+        dry_run=parsed_args.dry_run,
+        flatten_albums=parsed_args.flatten_albums,
+        excluded_album_ids=parsed_args.exclude_albums or [],
+    )
 
 
 def run_cli():
@@ -96,12 +109,4 @@ def run_cli():
     if parsed_args.action == "list-albums":
         album_list.print_album_tree(database_file_path)
     elif parsed_args.action == "export":
-        exporter.export_assets(
-            library_file_path,
-            parsed_args.strategy or PlainExportStrategy(),
-            parsed_args.restore_original_filenames,
-            parsed_args.dry_run,
-            parsed_args.flatten_albums,
-            parsed_args.exclude_albums or [],
-            parsed_args.destination
-        )
+        exporter.export_assets(_args_to_config(parsed_args))

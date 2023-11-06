@@ -105,6 +105,8 @@ def get_asset_data_with_album_info(database_file_path: str, excluded_ids: List[s
     with sqlite3.connect(f'file:{database_file_path}?mode=ro', uri=True) as conn:
         cursor = conn.cursor()
 
+        allowed_album_kinds = [k.value for k in (AlbumKind.ROOT, AlbumKind.USER_ALBUM, AlbumKind.USER_FOLDER)]
+
         sql = f"""
             WITH RECURSIVE ALBUM_PATH_CTE AS (
                 SELECT Z_PK
@@ -135,13 +137,11 @@ def get_asset_data_with_album_info(database_file_path: str, excluded_ids: List[s
             LEFT JOIN Z_28ASSETS album_mapping ON assets.Z_PK = album_mapping.Z_3ASSETS
             LEFT JOIN ZGENERICALBUM album ON album_mapping.Z_28ALBUMS = album.Z_PK
             LEFT JOIN ALBUM_PATH_CTE album_path ON album.Z_PK = album_path.Z_PK
-            WHERE (album.ZKIND IS NULL OR album.ZKIND IN (?))
-               AND (album.Z_PK IS NULL OR album.Z_PK NOT IN (?))
+            WHERE (album.ZKIND IS NULL OR album.ZKIND IN ({', '.join('?' for _ in allowed_album_kinds)}))
+               AND (album.Z_PK IS NULL OR album.Z_PK NOT IN ({', '.join('?' for _ in excluded_ids)}))
             """
 
-        allowed_album_kinds = [k.value for k in (AlbumKind.ROOT, AlbumKind.USER_ALBUM, AlbumKind.USER_FOLDER)]
-        excluded_ids_string = ', '.join(excluded_ids)
-        cursor.execute(sql, (*allowed_album_kinds, excluded_ids_string))
+        cursor.execute(sql, tuple(allowed_album_kinds + excluded_ids))
 
         results = cursor.fetchall()
 

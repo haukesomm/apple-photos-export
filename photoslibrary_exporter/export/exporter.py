@@ -6,6 +6,7 @@ from typing import List
 from colors import color
 
 from photoslibrary_exporter import asset_list, library_file
+from photoslibrary_exporter.config import Config
 from photoslibrary_exporter.export.strategy import ExportStrategy
 from photoslibrary_exporter.model import ExportAsset, AssetWithAlbumInfo
 
@@ -88,18 +89,16 @@ class AssetExporterImpl(AssetExporter):
         print(color('Done exporting assets.', fg='green'))
 
 
-def export_assets(library_file_path: str, strategy: ExportStrategy, restore_original_filename: bool, dry_run: bool, flatten_albums: bool, excluded_ids: List[str], output_path: str) -> None:
+def export_assets(config: Config) -> None:
     """
     Exports all assets from the library to the given destination path.
     """
 
-    db_file_path = library_file.get_photos_db_path(library_file_path)
-    assets = asset_list.get_assets_with_album_info(
-        db_file_path, restore_original_filename, flatten_albums, excluded_ids)
+    assets = asset_list.get_assets_with_album_info(config)
 
-    if dry_run:
-        exporter = DryRunAssetExporter(strategy)
+    if config.dry_run:
+        exporter = DryRunAssetExporter(config.export_strategy)
     else:
-        exporter = AssetExporterImpl(strategy)
+        exporter = AssetExporterImpl(config.export_strategy)
 
-    exporter.export(assets, library_file_path, output_path)
+    exporter.export(assets, config.library_path, config.destination_path)

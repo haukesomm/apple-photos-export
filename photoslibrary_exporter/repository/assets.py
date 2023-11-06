@@ -2,53 +2,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import List, Any, Optional
 
-from photoslibrary_exporter.model import AlbumKind
-
-
-@dataclass
-class AlbumDto:
-    id: str
-    kind: int
-    parent_album: str
-    name: str
-    cocoa_start_date: str
-
-
-def get_albums(database_file_path: str) -> List[AlbumDto]:
-    """
-    Returns a list of all user-created albums in the database.
-    System albums are not included.
-
-    :param database_file_path: Path of the Photos.sqlite file
-    :return: List of all user-created albums
-    """
-    with sqlite3.connect(f'file:{database_file_path}?mode=ro', uri=True) as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT album.Z_PK
-                 , album.ZKIND
-                 , album.ZTITLE
-                 , album.ZSTARTDATE
-                 , album.ZPARENTFOLDER
-            FROM ZGENERICALBUM album
-            WHERE album.ZKIND IN (2, 3999, 4000)
-            ORDER BY album.ZSTARTDATE
-            """
-        )
-        results = cursor.fetchall()
-
-        return list(map(_album_dto_from_result, results))
-
-
-def _album_dto_from_result(result: Any) -> AlbumDto:
-    return AlbumDto(
-        id=str(result[0]),
-        kind=result[1],
-        name=result[2],
-        cocoa_start_date=result[3],
-        parent_album=str(result[4])
-    )
+from photoslibrary_exporter.model.album import AlbumKind
 
 
 @dataclass
@@ -145,7 +99,7 @@ def get_asset_data_with_album_info(database_file_path: str, excluded_ids: List[s
 
         results = cursor.fetchall()
 
-        def parse_dto(result: Any) -> AssetWithAlbumInfoDto:
+        def parse_result(result: Any) -> AssetWithAlbumInfoDto:
             return AssetWithAlbumInfoDto(
                 asset_id=str(result[0]),
                 asset_directory=result[1],
@@ -156,4 +110,4 @@ def get_asset_data_with_album_info(database_file_path: str, excluded_ids: List[s
                 cocoa_album_start_date=result[6]
             )
 
-        return list(map(parse_dto, results))
+        return list(map(parse_result, results))

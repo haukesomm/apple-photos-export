@@ -1,25 +1,24 @@
 from typing import List
 
-from photoslibrary_exporter import cocoa, repo, library_file
-from photoslibrary_exporter.config import Config
-from photoslibrary_exporter.model import AssetWithAlbumInfo
-from photoslibrary_exporter.repo import AssetWithAlbumInfoDto
+from photoslibrary_exporter import cocoa
+from photoslibrary_exporter.context import ExportContext
+from photoslibrary_exporter.model.asset import AssetWithAlbumInfo
+from photoslibrary_exporter.repository import assets as asset_repo
+from photoslibrary_exporter.repository.assets import AssetWithAlbumInfoDto
 
 
-def get_assets_with_album_info(config: Config) -> List[AssetWithAlbumInfo]:
+def get_assets_with_album_info(context: ExportContext) -> List[AssetWithAlbumInfo]:
     """
     Gets all assets from the library that should be exported and returns them as a list of ExportAsset objects.
     """
 
-    db_file_path = library_file.get_photos_db_path(config.library_path)
-
     def parse_dto(dto: AssetWithAlbumInfoDto) -> AssetWithAlbumInfo:
-        if config.flatten_albums and dto.album_path:
+        if context.flatten_albums and dto.album_path:
             album_path = dto.album_path.removesuffix('/').split('/')[-1]
         else:
             album_path = dto.album_path
 
-        if config.restore_original_filenames:
+        if context.restore_original_filenames:
             asset_preferred_filename = dto.asset_original_filename
         else:
             asset_preferred_filename = dto.asset_filename
@@ -42,5 +41,5 @@ def get_assets_with_album_info(config: Config) -> List[AssetWithAlbumInfo]:
             album_start_date=album_timestamp
         )
 
-    export_asset_dtos = repo.get_asset_data_with_album_info(db_file_path, config.excluded_album_ids)
+    export_asset_dtos = asset_repo.get_asset_data_with_album_info(context.photos_db_path(), context.excluded_album_ids)
     return list(map(parse_dto, export_asset_dtos))

@@ -1,7 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 
-from photoslibrary_exporter.model import ExportAsset, AssetWithAlbumInfo
+from photoslibrary_exporter.model.asset import ExportAsset, AssetWithAlbumInfo
 
 
 class ExportStrategy(ABC):

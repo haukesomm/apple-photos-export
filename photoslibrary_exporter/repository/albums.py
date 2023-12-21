@@ -10,6 +10,7 @@ class AlbumDto:
     parent_album: str
     name: str
     cocoa_start_date: str
+    asset_count: int
 
 
 def get_albums(database_file_path: str) -> List[AlbumDto]:
@@ -29,9 +30,14 @@ def get_albums(database_file_path: str) -> List[AlbumDto]:
                  , album.ZTITLE
                  , album.ZSTARTDATE
                  , album.ZPARENTFOLDER
+                 , (
+                        SELECT COUNT(*)
+                        FROM Z_28ASSETS mapping
+                        WHERE mapping.Z_28ALBUMS = album.Z_PK
+                   ) AS ASSET_COUNT
             FROM ZGENERICALBUM album
             WHERE album.ZKIND IN (2, 3999, 4000)
-            ORDER BY album.ZSTARTDATE
+            ORDER BY album.ZSTARTDATE;
             """
         )
         results = cursor.fetchall()
@@ -42,7 +48,8 @@ def get_albums(database_file_path: str) -> List[AlbumDto]:
                 kind=result[1],
                 name=result[2],
                 cocoa_start_date=result[3],
-                parent_album=str(result[4])
+                parent_album=str(result[4]),
+                asset_count=result[5]
             )
 
         return list(map(parse_result, results))

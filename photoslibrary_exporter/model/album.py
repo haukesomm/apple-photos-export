@@ -24,3 +24,4 @@ class Album:
     parent_album: str
     name: str
     start_date: datetime
+    asset_count: int

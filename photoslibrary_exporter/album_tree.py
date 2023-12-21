@@ -36,7 +36,8 @@ def _get_albums(library_path: str) -> list[Album]:
             kind=AlbumKind(dto.kind),
             parent_album=dto.parent_album,
             name=dto.name,
-            start_date=cocoa.cocoa_timestamp_to_datetime(dto.cocoa_start_date) if dto.cocoa_start_date else None
+            start_date=cocoa.cocoa_timestamp_to_datetime(dto.cocoa_start_date) if dto.cocoa_start_date else None,
+            asset_count=dto.asset_count
         )
 
     album_dtos = photoslibrary_exporter.repository.albums.get_albums(library_path)
@@ -70,7 +71,8 @@ def _album_to_str(album: Album) -> str:
         description = ''.join([
             color(f'({album.id}) ', fg='yellow'),
             color(f'{timestamp}: ', fg='gray') if timestamp else '',
-            color(album.name, fg='silver')
+            color(album.name, fg='silver'),
+            color(f' ({album.asset_count} assets)', fg='teal')
         ])
 
     return description

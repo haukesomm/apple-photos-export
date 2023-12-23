@@ -36,7 +36,7 @@ def get_albums(database_file_path: str) -> List[AlbumDto]:
                         WHERE mapping.Z_28ALBUMS = album.Z_PK
                    ) AS ASSET_COUNT
             FROM ZGENERICALBUM album
-            WHERE album.ZKIND IN (2, 3999, 4000)
+            WHERE album.ZKIND IN (2, 3999, 4000) AND album.ZTRASHEDSTATE = 0
             ORDER BY album.ZSTARTDATE;
             """
         )

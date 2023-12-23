@@ -77,6 +77,7 @@ def get_asset_data_with_album_info(database_file_path: str, excluded_ids: List[s
                 FROM ZGENERICALBUM child
                 JOIN ALBUM_PATH_CTE album
                   ON album.Z_PK = child.ZPARENTFOLDER
+                WHERE child.ZTRASHEDSTATE = 0
             )
             
             SELECT assets.Z_PK AS ASSET_ID

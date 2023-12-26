@@ -5,10 +5,10 @@ from typing import List
 
 from colors import color
 
-from photoslibrary_exporter import asset_list
-from photoslibrary_exporter.context import ExportContext
-from photoslibrary_exporter.export.strategy import ExportStrategy
-from photoslibrary_exporter.model.asset import ExportAsset, AssetWithAlbumInfo
+from apple_photos_export import asset_list
+from apple_photos_export.context import ExportContext
+from apple_photos_export.export.strategy import ExportStrategy
+from apple_photos_export.model.asset import ExportAsset, AssetWithAlbumInfo
 
 
 class AssetExporter(ABC):

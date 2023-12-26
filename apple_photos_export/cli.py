@@ -1,9 +1,9 @@
 import argparse
 
-from photoslibrary_exporter import album_tree
-from photoslibrary_exporter.context import BaseContext, ExportContext
-from photoslibrary_exporter.export import exporter
-from photoslibrary_exporter.export.strategy import PlainExportStrategy, YearMonthExportStrategy, \
+from apple_photos_export import album_tree
+from apple_photos_export.context import BaseContext, ExportContext
+from apple_photos_export.export import exporter
+from apple_photos_export.export.strategy import PlainExportStrategy, YearMonthExportStrategy, \
     YearMonthAlbumExportStrategy, AlbumExportStrategy
 
 
@@ -31,7 +31,7 @@ def run_cli():
     """
 
     parser = argparse.ArgumentParser(
-        prog='photoslibrary-exporter',
+        prog='apple-photos-export',
         description='Export photos from the macOS Photos library, organized by album and/or date.',
         add_help=True
     )

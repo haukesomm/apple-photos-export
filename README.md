@@ -44,7 +44,7 @@ Here is an example command that simulates an export of all images and videos fro
 `~/Pictures/Export` directory and restores the original file names:
 
 ```shell
-./photoslibrary-exporter export \
+./apple-photos-export export \
     --restore-original-filenames --dry-run \
     ~/Pictures/Photos\ Library.photoslibrary ~/Desktop/Test
 ```

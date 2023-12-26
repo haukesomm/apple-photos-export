@@ -1,10 +1,10 @@
 from typing import List
 
-from photoslibrary_exporter import cocoa
-from photoslibrary_exporter.context import ExportContext
-from photoslibrary_exporter.model.asset import AssetWithAlbumInfo
-from photoslibrary_exporter.repository import assets as asset_repo
-from photoslibrary_exporter.repository.assets import AssetWithAlbumInfoDto
+from apple_photos_export import cocoa
+from apple_photos_export.context import ExportContext
+from apple_photos_export.model.asset import AssetWithAlbumInfo
+from apple_photos_export.repository import assets as asset_repo
+from apple_photos_export.repository.assets import AssetWithAlbumInfoDto
 
 
 def get_assets_with_album_info(context: ExportContext) -> List[AssetWithAlbumInfo]:

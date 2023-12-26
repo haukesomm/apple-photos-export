@@ -2,7 +2,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import List, Any, Optional
 
-from photoslibrary_exporter.model.album import AlbumKind
+from apple_photos_export.model.album import AlbumKind
 
 
 @dataclass

@@ -4,11 +4,11 @@ from typing import List
 from colors import color
 from treelib import Tree
 
-import photoslibrary_exporter.repository.albums
-import photoslibrary_exporter.repository.assets
-from photoslibrary_exporter import cocoa
-from photoslibrary_exporter.model.album import Album, AlbumKind
-from photoslibrary_exporter.repository.albums import AlbumDto
+import apple_photos_export.repository.albums
+import apple_photos_export.repository.assets
+from apple_photos_export import cocoa
+from apple_photos_export.model.album import Album, AlbumKind
+from apple_photos_export.repository.albums import AlbumDto
 
 
 def print_album_tree(db_file_path: str) -> None:
@@ -20,7 +20,7 @@ def print_album_tree(db_file_path: str) -> None:
     tree = _generate_ascii_album_tree(albums)
     print(tree)
 
-    asset_counts = photoslibrary_exporter.repository.assets.get_album_asset_counts(db_file_path)
+    asset_counts = apple_photos_export.repository.assets.get_album_asset_counts(db_file_path)
     print(f'Total number of assets: {asset_counts.asset_count}')
     print(f'Number of assets not in an album: {asset_counts.asset_count_no_album}')
 
@@ -40,7 +40,7 @@ def _get_albums(library_path: str) -> list[Album]:
             asset_count=dto.asset_count
         )
 
-    album_dtos = photoslibrary_exporter.repository.albums.get_albums(library_path)
+    album_dtos = apple_photos_export.repository.albums.get_albums(library_path)
     return list(map(parse_dto, album_dtos))
 
 

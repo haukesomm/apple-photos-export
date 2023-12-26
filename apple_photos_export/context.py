@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 
-from photoslibrary_exporter.export.strategy import ExportStrategy
+from apple_photos_export.export.strategy import ExportStrategy
 
 
 @dataclass

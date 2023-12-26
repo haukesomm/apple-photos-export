@@ -2,16 +2,11 @@ import sqlite3
 from dataclasses import dataclass
 from typing import List, Any, Optional
 
-from apple_photos_export.model.album import AlbumKind
+from apple_photos_export import cocoa
+from apple_photos_export.model.asset import AssetCount, AssetWithAlbumInfo
 
 
-@dataclass
-class AssetCountDto:
-    asset_count: int
-    asset_count_no_album: int
-
-
-def get_album_asset_counts(database_file_path: str) -> AssetCountDto:
+def get_album_asset_counts(database_file_path: str) -> AssetCount:
     """
     Returns the number of assets in the database and the number of assets that are not part of any album.
 
@@ -19,20 +14,22 @@ def get_album_asset_counts(database_file_path: str) -> AssetCountDto:
     :return: Asset count DTO
     """
     with sqlite3.connect(f'file:{database_file_path}?mode=ro', uri=True) as conn:
+        conn.row_factory = sqlite3.Row
+
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT COUNT(assets.Z_PK) AS ASSET_CNT
-                 , COUNT(assets.Z_PK) - COUNT(album_mapping.Z_3ASSETS) AS ASSET_CNT_NO_ALBUM
-            FROM ZASSET assets
-            LEFT JOIN Z_28ASSETS album_mapping ON assets.Z_PK = album_mapping.Z_3ASSETS
+            select COUNT(assets.Z_PK) as ASSET_CNT_TOTAL
+                 , COUNT(album_mapping.Z_3ASSETS) as ASSET_CNT_ALBUM
+            from ZASSET assets
+            left join Z_28ASSETS album_mapping on assets.Z_PK = album_mapping.Z_3ASSETS
             """
         )
         result = cursor.fetchall()[0]
 
-        return AssetCountDto(
-            asset_count=result[0],
-            asset_count_no_album=result[1]
+        return AssetCount(
+            total=result['ASSET_CNT_TOTAL'],
+            album=result['ASSET_CNT_ALBUM']
         )
 
 
@@ -47,19 +44,17 @@ class AssetWithAlbumInfoDto:
     cocoa_album_start_date: Optional[str]
 
 
-def get_asset_data_with_album_info(database_file_path: str, excluded_ids: List[str]) -> List[AssetWithAlbumInfoDto]:
+def get_asset_data_with_album_info(database_file_path: str, excluded_ids: List[str]) -> List[AssetWithAlbumInfo]:
     """
     Returns a list of all assets together with their original filenames and album information.
 
     :param database_file_path: Library database file path
     :param excluded_ids: List of album ids that should be excluded from the export
-    :return: List of export asset DTOs
+    :return: List of assets with their album information
     """
 
     with sqlite3.connect(f'file:{database_file_path}?mode=ro', uri=True) as conn:
-        cursor = conn.cursor()
-
-        allowed_album_kinds = [k.value for k in (AlbumKind.ROOT, AlbumKind.USER_ALBUM, AlbumKind.USER_FOLDER)]
+        conn.row_factory = sqlite3.Row
 
         sql = f"""
             WITH RECURSIVE ALBUM_PATH_CTE AS (
@@ -92,23 +87,23 @@ def get_asset_data_with_album_info(database_file_path: str, excluded_ids: List[s
             LEFT JOIN Z_28ASSETS album_mapping ON assets.Z_PK = album_mapping.Z_3ASSETS
             LEFT JOIN ZGENERICALBUM album ON album_mapping.Z_28ALBUMS = album.Z_PK
             LEFT JOIN ALBUM_PATH_CTE album_path ON album.Z_PK = album_path.Z_PK
-            WHERE (album.ZKIND IS NULL OR album.ZKIND IN ({', '.join('?' for _ in allowed_album_kinds)}))
+            WHERE (album.ZKIND IS NULL OR album.ZKIND IN (2, 3999, 4000))
                AND (album.Z_PK IS NULL OR album.Z_PK NOT IN ({', '.join('?' for _ in excluded_ids)}))
             """
 
-        cursor.execute(sql, tuple(allowed_album_kinds + excluded_ids))
-
+        cursor = conn.cursor()
+        cursor.execute(sql, tuple(excluded_ids))
         results = cursor.fetchall()
 
-        def parse_result(result: Any) -> AssetWithAlbumInfoDto:
-            return AssetWithAlbumInfoDto(
-                asset_id=str(result[0]),
-                asset_directory=result[1],
-                asset_filename=result[2],
-                asset_original_filename=result[3],
-                asset_date=result[4],
-                album_path=result[5],
-                cocoa_album_start_date=result[6]
+        def parse_result(result: Any) -> AssetWithAlbumInfo:
+            return AssetWithAlbumInfo(
+                asset_id=result['ASSET_ID'],
+                asset_directory=result['ASSET_DIRECTORY'],
+                asset_filename=result['ASSET_FILENAME'],
+                asset_original_filename=result['ASSET_ORIGINAL_FILENAME'],
+                asset_date=cocoa.timestamp_to_datetime(result['ASSET_DATE']),
+                album_path=result['ALBUM_PATH'],
+                album_start_date=cocoa.timestamp_to_datetime(time) if (time := result['ALBUM_START_DATE']) else None
             )
 
         return list(map(parse_result, results))

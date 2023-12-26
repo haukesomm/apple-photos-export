@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-def cocoa_timestamp_to_datetime(timestamp: str) -> datetime:
+def timestamp_to_datetime(timestamp: str) -> datetime:
     """
     Converts a Cocoa timestamp to a standard datetime object.
 

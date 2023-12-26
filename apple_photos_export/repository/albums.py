@@ -2,18 +2,11 @@ import sqlite3
 from dataclasses import dataclass
 from typing import List, Any
 
-
-@dataclass
-class AlbumDto:
-    id: str
-    kind: int
-    parent_album: str
-    name: str
-    cocoa_start_date: str
-    asset_count: int
+from apple_photos_export import cocoa
+from apple_photos_export.model.album import Album, AlbumKind
 
 
-def get_albums(database_file_path: str) -> List[AlbumDto]:
+def get_albums(database_file_path: str) -> List[Album]:
     """
     Returns a list of all user-created albums in the database.
     System albums are not included.
@@ -22,6 +15,8 @@ def get_albums(database_file_path: str) -> List[AlbumDto]:
     :return: List of all user-created albums
     """
     with sqlite3.connect(f'file:{database_file_path}?mode=ro', uri=True) as conn:
+        conn.row_factory = sqlite3.Row
+
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -42,14 +37,14 @@ def get_albums(database_file_path: str) -> List[AlbumDto]:
         )
         results = cursor.fetchall()
 
-        def parse_result(result: Any) -> AlbumDto:
-            return AlbumDto(
-                id=str(result[0]),
-                kind=result[1],
-                name=result[2],
-                cocoa_start_date=result[3],
-                parent_album=str(result[4]),
-                asset_count=result[5]
+        def parse_result(result: Any) -> Album:
+            return Album(
+                id=result['Z_PK'],
+                kind=AlbumKind(result['ZKIND']),
+                parent_album=result['ZPARENTFOLDER'],
+                name=result['ZTITLE'],
+                start_date=cocoa.timestamp_to_datetime(start) if (start := result['ZSTARTDATE']) else None,
+                asset_count=result['ASSET_COUNT']
             )
 
         return list(map(parse_result, results))

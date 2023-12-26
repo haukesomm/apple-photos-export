@@ -1,62 +1,44 @@
 import datetime
-from typing import List
+from typing import List, Optional
 
 from colors import color
 from treelib import Tree
 
-import apple_photos_export.repository.albums
-import apple_photos_export.repository.assets
-from apple_photos_export import cocoa
 from apple_photos_export.model.album import Album, AlbumKind
-from apple_photos_export.repository.albums import AlbumDto
+from apple_photos_export.repository.albums import get_albums
+from apple_photos_export.repository.assets import get_album_asset_counts
 
 
 def print_album_tree(db_file_path: str) -> None:
     """
     Gets all albums from the library and prints them as an ASCII tree.
     """
-
-    albums = _get_albums(db_file_path)
+    albums = get_albums(db_file_path)
     tree = _generate_ascii_album_tree(albums)
     print(tree)
 
-    asset_counts = apple_photos_export.repository.assets.get_album_asset_counts(db_file_path)
-    print(f'Total number of assets: {asset_counts.asset_count}')
-    print(f'Number of assets not in an album: {asset_counts.asset_count_no_album}')
-
-
-def _get_albums(library_path: str) -> list[Album]:
-    """
-    Gets all albums from the library and returns them as a list of Album objects.
-    """
-
-    def parse_dto(dto: AlbumDto) -> Album:
-        return Album(
-            id=dto.id,
-            kind=AlbumKind(dto.kind),
-            parent_album=dto.parent_album,
-            name=dto.name,
-            start_date=cocoa.cocoa_timestamp_to_datetime(dto.cocoa_start_date) if dto.cocoa_start_date else None,
-            asset_count=dto.asset_count
-        )
-
-    album_dtos = apple_photos_export.repository.albums.get_albums(library_path)
-    return list(map(parse_dto, album_dtos))
+    asset_counts = get_album_asset_counts(db_file_path)
+    print(f'Total number of assets: {asset_counts.total}')
+    print(f'Number of assets not in an album: {asset_counts.total - asset_counts.album}')
 
 
 def _generate_ascii_album_tree(albums: List[Album]):
     tree = Tree()
 
-    root = next(album for album in albums if album.kind == AlbumKind.ROOT)
-    tree.create_node(identifier=root.id, parent=None, tag=_album_to_str(root), data=root)
+    albums_by_parent_id = {}
+    for album in albums:
+        albums_by_parent_id.setdefault(album.parent_album, []).append(album)
 
-    def _add_child_nodes(parent_id: str) -> None:
-        children = [album for album in albums if album.parent_album == parent_id]
+    def _add_nodes_recursively(parent_id: Optional[int] = None) -> None:
+        """
+        Adds all albums as nodes to the tree, recursively, starting with the root album (parent_id=None).
+        """
+        children = albums_by_parent_id.setdefault(parent_id, [])
         for child in children:
             tree.create_node(identifier=child.id, parent=parent_id, tag=_album_to_str(child), data=child)
-            _add_child_nodes(child.id)
+            _add_nodes_recursively(child.id)
 
-    _add_child_nodes(parent_id=root.id)
+    _add_nodes_recursively()
 
     return tree.show(stdout=False, key=lambda a: a.data.start_date or datetime.datetime.min)
 

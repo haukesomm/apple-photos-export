@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 
 
 class AlbumKind(Enum):
@@ -19,9 +20,9 @@ class Album:
     """
     Data class representing an album.
     """
-    id: str
+    id: int
     kind: AlbumKind
-    parent_album: str
+    parent_album: Optional[int]
     name: str
     start_date: datetime
     asset_count: int

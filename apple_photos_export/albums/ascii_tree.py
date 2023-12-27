@@ -4,9 +4,8 @@ from typing import List, Optional
 from colors import color
 from treelib import Tree
 
-from apple_photos_export.model.album import Album, AlbumKind
-from apple_photos_export.repository.albums import get_albums
-from apple_photos_export.repository.assets import get_album_asset_counts
+from apple_photos_export.albums.album import Album, AlbumKind
+from apple_photos_export.albums.repo import get_albums, get_album_asset_counts
 
 
 def print_album_tree(db_file_path: str) -> None:

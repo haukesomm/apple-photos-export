@@ -1,6 +1,7 @@
 import argparse
 
-from apple_photos_export import album_tree, library_file
+from apple_photos_export import library_file
+from apple_photos_export.albums.ascii_tree import print_album_tree
 from apple_photos_export.export import exporter
 from apple_photos_export.export.properties import ExportProperties
 from apple_photos_export.export.strategy import PlainExportStrategy, YearMonthExportStrategy, \
@@ -8,7 +9,7 @@ from apple_photos_export.export.strategy import PlainExportStrategy, YearMonthEx
 
 
 def _print_album_tree(parsed_args: argparse.Namespace) -> None:
-    album_tree.print_album_tree(library_file.db_path(parsed_args.library))
+    print_album_tree(library_file.db_path(parsed_args.library))
 
 
 def _export(parsed_args: argparse.Namespace) -> None:

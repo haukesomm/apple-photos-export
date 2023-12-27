@@ -1,9 +1,8 @@
 import sqlite3
-from dataclasses import dataclass
 from typing import List, Any
 
 from apple_photos_export import cocoa
-from apple_photos_export.model.album import Album, AlbumKind
+from apple_photos_export.albums.album import Album, AlbumKind, AssetCount
 
 
 def get_albums(database_file_path: str) -> List[Album]:
@@ -48,3 +47,30 @@ def get_albums(database_file_path: str) -> List[Album]:
             )
 
         return list(map(parse_result, results))
+
+
+def get_album_asset_counts(database_file_path: str) -> AssetCount:
+    """
+    Returns the number of assets in the database and the number of assets that are not part of any album.
+
+    :param database_file_path: Library database file path
+    :return: Asset count DTO
+    """
+    with sqlite3.connect(f'file:{database_file_path}?mode=ro', uri=True) as conn:
+        conn.row_factory = sqlite3.Row
+
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            select COUNT(assets.Z_PK) as ASSET_CNT_TOTAL
+                 , COUNT(album_mapping.Z_3ASSETS) as ASSET_CNT_ALBUM
+            from ZASSET assets
+            left join Z_28ASSETS album_mapping on assets.Z_PK = album_mapping.Z_3ASSETS
+            """
+        )
+        result = cursor.fetchall()[0]
+
+        return AssetCount(
+            total=result['ASSET_CNT_TOTAL'],
+            album=result['ASSET_CNT_ALBUM']
+        )

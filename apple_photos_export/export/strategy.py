@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Callable
 
-from apple_photos_export.model.asset import AssetWithAlbumInfo
+from apple_photos_export.export.asset import AssetWithAlbumInfo
 
 
 class ExportStrategy(ABC):

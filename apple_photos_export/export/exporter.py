@@ -6,10 +6,10 @@ from typing import List
 from colors import color
 
 from apple_photos_export import library_file
+from apple_photos_export.export.asset import AssetWithAlbumInfo
 from apple_photos_export.export.properties import ExportProperties
+from apple_photos_export.export.repo import get_asset_data_with_album_info
 from apple_photos_export.export.strategy import ExportStrategy
-from apple_photos_export.model.asset import AssetWithAlbumInfo
-from apple_photos_export.repository.assets import get_asset_data_with_album_info
 
 
 class AssetExporter(ABC):
@@ -65,6 +65,7 @@ class AssetExporter(ABC):
 
             self._export_single_asset(full_source_path, full_dest_path)
 
+        print()
         self._on_finished()
 
 

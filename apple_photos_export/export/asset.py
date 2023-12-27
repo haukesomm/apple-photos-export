@@ -1,17 +1,7 @@
-import os.path
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
-
-
-@dataclass
-class AssetCount:
-    """
-    Data class representing the total number of assets in the database as well as the number of assets that are part of
-    an album.
-    """
-    total: int
-    album: int
 
 
 @dataclass

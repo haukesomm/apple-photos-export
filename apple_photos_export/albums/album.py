@@ -26,3 +26,13 @@ class Album:
     name: str
     start_date: datetime
     asset_count: int
+
+
+@dataclass
+class AssetCount:
+    """
+    Data class representing the total number of assets in the database as well as the number of assets that are part of
+    an album.
+    """
+    total: int
+    album: int

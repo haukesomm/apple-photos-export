@@ -1,4 +1,4 @@
-# Apple Photos Library Exporter
+# Apple Photos Export
 
 This program exports all images and videos from an Apple Photos Library to a local directory, making the files easily 
 accessible without the need to use the native Photos app.

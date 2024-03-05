@@ -6,24 +6,21 @@ This program exports all images and videos from an Apple Photos Library to a loc
 accessible without the need to use the native Photos app.
 It is intended for backup purposes and does not modify the library in any way.
 
-This Rust project is a rewrite of my previous Python implementation that can be found
-[here](https://github.com/haukesomm/apple-photos-export).
+This project is based on my previous proof-of-concept Python implementation
+[apple-photos-export](https://github.com/haukesomm/apple-photos-export).
 
 > [!IMPORTANT]
 > The project works by reverse-engineering the Apple Photos Library database and file structure. Thus, it is not
 > guaranteed to work with future versions of the Photos app or at all. Use it at your own risk and always keep a backup
 > of your library.
 
-> [!NOTE]
-> Please not that this is still work-in-progress! Not all features have been ported over from the old application.
-
 ## Highlights
 
-- Lists all albums of the library as an ascii tree ✅
-- Exports all images and videos from the Photos Library to a local directory ❌
-- Different export album structures are supported (overview below) ❌
-- Optionally restores the original file names that were used when importing the files into the library ❌
-- Dry-run mode to test the export without actually copying any files ❌
+- Lists all albums of the library as an ascii tree
+- Exports all images and videos from the Photos Library to a local directory
+- Different export album structures are supported (overview below)
+- Optionally restores the original file names that were used when importing the files into the library
+- Dry-run mode to test the export without actually copying any files
 
 ### Export Album Structures
 

@@ -1,23 +1,11 @@
 use std::collections::HashMap;
 use std::fmt::Display;
-
-use ascii_tree::{Tree, write_tree};
+use ascii_tree::Tree;
 use ascii_tree::Tree::{Leaf, Node};
 use colored::Colorize;
-
 use crate::model::album::{Album, Kind};
 
-pub fn query_and_print_albums(db_path: &String) {
-    let albums = crate::repo::album::query_albums(db_path).unwrap();
-    let tree = build_tree(&albums);
-
-    let mut ascii_tree = String::new();
-    let _ = write_tree(&mut ascii_tree, &tree);
-
-    println!("{}", ascii_tree);
-}
-
-fn build_tree(albums: &Vec<Album>) -> Tree {
+pub fn build_tree(albums: &Vec<Album>) -> Tree {
     let root = match albums.iter().find(|a| a.kind == Kind::Root) {
         None => panic!("Library does not contain a root album!"),
         Some(album) => album

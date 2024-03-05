@@ -3,10 +3,26 @@ use rusqlite::{Connection, OpenFlags, Result};
 use crate::model::album::{Album, Kind};
 use crate::model::cocoa_date::parse_cocoa_timestamp;
 
-pub fn query_albums(database_path: &String) -> Result<Vec<Album>> {
-    let conn = Connection::open_with_flags(database_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+pub trait AlbumRepository {
+    fn get_all(&self) -> Result<Vec<Album>>;
+}
 
-    let mut statement = conn.prepare("\
+pub struct AlbumRepositoryImpl<'a> {
+    db_path: &'a String
+}
+
+impl AlbumRepositoryImpl<'_> {
+    pub fn new(db_path: &String) -> AlbumRepositoryImpl {
+        AlbumRepositoryImpl { db_path }
+    }
+}
+
+impl AlbumRepository for AlbumRepositoryImpl<'_> {
+
+    fn get_all(&self) -> Result<Vec<Album>> {
+        let conn = Connection::open_with_flags(self.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+
+        let mut statement = conn.prepare("\
         SELECT album.Z_PK
              , album.ZKIND
              , album.ZTITLE
@@ -22,27 +38,28 @@ pub fn query_albums(database_path: &String) -> Result<Vec<Album>> {
         ORDER BY album.ZSTARTDATE;
     ")?;
 
-    let album_iter = statement.query_map([], |row| {
-        Ok(
-            Album {
-                id: row.get(0)?,
-                kind: {
-                    let id: i32 = row.get(1).unwrap();
-                    Kind::try_from(id).unwrap()
-                },
-                parent_id: row.get(4)?,
-                name: row.get(2).unwrap_or("".to_string()),
-                start_date: {
-                    let cocoa_seconds: Option<f32> = row.get(3).unwrap();
-                    match cocoa_seconds {
-                        None => None,
-                        Some(f) => Some(parse_cocoa_timestamp(f))
-                    }
-                },
-                asset_count: row.get(5)?,
-            }
-        )
-    })?;
+        let album_iter = statement.query_map([], |row| {
+            Ok(
+                Album {
+                    id: row.get(0)?,
+                    kind: {
+                        let id: i32 = row.get(1).unwrap();
+                        Kind::try_from(id).unwrap()
+                    },
+                    parent_id: row.get(4)?,
+                    name: row.get(2).unwrap_or("".to_string()),
+                    start_date: {
+                        let cocoa_seconds: Option<f32> = row.get(3).unwrap();
+                        match cocoa_seconds {
+                            None => None,
+                            Some(f) => Some(parse_cocoa_timestamp(f))
+                        }
+                    },
+                    asset_count: row.get(5)?,
+                }
+            )
+        })?;
 
-    Ok(album_iter.map(|res| res.unwrap()).collect())
+        Ok(album_iter.map(|res| res.unwrap()).collect())
+    }
 }

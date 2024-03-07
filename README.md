@@ -1,13 +1,10 @@
-# apple-photos-rs
+# apple-photos-export
 
 ![Rust](https://img.shields.io/badge/Rust-d6a672?style=for-the-badge&logo=rust)
 
 This program exports all images and videos from an Apple Photos Library to a local directory, making the files easily
 accessible without the need to use the native Photos app.
 It is intended for backup purposes and does not modify the library in any way.
-
-This project is based on my previous proof-of-concept Python implementation
-[apple-photos-export](https://github.com/haukesomm/apple-photos-export).
 
 > [!IMPORTANT]
 > The project works by reverse-engineering the Apple Photos Library database and file structure. Thus, it is not
@@ -35,14 +32,18 @@ This project is based on my previous proof-of-concept Python implementation
 
 The program has been tested on the following OSs with the following versions of the Photos app:
 
-| OS                  | Photos Version  |
-|---------------------|-----------------|
-| macOS 14.0 (Sonoma) | 9.0 (608.2.113) |
+| OS                  | Photos Version                        |
+|---------------------|---------------------------------------|
+| macOS 14.0 (Sonoma) | 9.0 (608.2.113), <br> 9.0 (621.0.110) |
+
+> [!NOTE]
+> The above table only contains vesion that I explicitly tested.
+> However, there's a high chance this tool works on other versions too.
 
 ## Usage
 
 Example:
 ```shell
 $ cargo build --release
-$ ./target/release/apple-photos-rs --help
+$ ./target/release/apple-photos-export --help
 ```

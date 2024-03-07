@@ -84,8 +84,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "apple-photos-rs"
-version = "0.1.0"
+name = "apple-photos-export"
+version = "0.0.1"
 dependencies = [
  "ascii_tree",
  "chrono",

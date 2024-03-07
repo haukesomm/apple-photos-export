@@ -11,7 +11,7 @@ pub enum Answer {
     No
 }
 
-pub fn confirmation_prompt(prompt: &str) -> Answer {
+pub fn confirmation_prompt(prompt: String) -> Answer {
     let mut input = String::new();
 
     while input.len() != 1 || match input.chars().next() {
@@ -20,7 +20,7 @@ pub fn confirmation_prompt(prompt: &str) -> Answer {
     } {
         input.clear();
 
-        print!("{} [{}{}]: ", prompt, CHARACTER_YES, CHARACTER_NO);
+        print!("{} [{}{}]", prompt, CHARACTER_YES, CHARACTER_NO);
         let _ = stdout().flush();
         stdin().read_line(&mut input).expect("Unable to read user input");
 

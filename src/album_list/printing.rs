@@ -4,12 +4,12 @@ use crate::repo::album::AlbumRepository;
 
 
 pub struct AlbumListPrinter<'a> {
-    repo: &'a dyn AlbumRepository
+    repo: &'a AlbumRepository
 }
 
 impl AlbumListPrinter<'_> {
 
-    pub fn new(repo: &dyn AlbumRepository) -> AlbumListPrinter {
+    pub fn new(repo: &AlbumRepository) -> AlbumListPrinter {
         AlbumListPrinter { repo }
     }
 

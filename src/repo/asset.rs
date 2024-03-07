@@ -10,25 +10,19 @@ pub enum FilterMode {
 }
 
 
-pub trait AssetWithAlbumInfoRepo {
-    fn get_all(&self) -> Result<Vec<AssetWithAlbumInfo>>;
-}
-
-
-pub struct AssetWithAlbumInfoRepoImpl<'a> {
-    db_path: &'a String,
+pub struct AssetWithAlbumInfoRepo {
+    db_path: String,
     filter_mode: FilterMode
 }
 
-impl AssetWithAlbumInfoRepoImpl<'_> {
-    pub fn new(db_path: &String, filter_mode: FilterMode) -> AssetWithAlbumInfoRepoImpl {
-        AssetWithAlbumInfoRepoImpl { db_path, filter_mode }
-    }
-}
+impl AssetWithAlbumInfoRepo {
 
-impl AssetWithAlbumInfoRepo for AssetWithAlbumInfoRepoImpl<'_> {
-    fn get_all(&self) -> Result<Vec<AssetWithAlbumInfo>> {
-        let conn = Connection::open_with_flags(self.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    pub fn new(db_path: String, filter_mode: FilterMode) -> AssetWithAlbumInfoRepo {
+        AssetWithAlbumInfoRepo { db_path, filter_mode }
+    }
+
+    pub fn get_all(&self) -> Result<Vec<AssetWithAlbumInfo>> {
+        let conn = Connection::open_with_flags(&self.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
 
         let mut sql = String::from("\
             WITH RECURSIVE ALBUM_PATH_CTE AS (

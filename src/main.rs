@@ -7,8 +7,8 @@ use crate::export::copying::{AssetCopyStrategy, DefaultAssetCopyStrategy, DryRun
 use crate::export::exporter::Exporter;
 use crate::export::structure::{AlbumOutputStructureStrategy, JoiningOutputStructureStrategy, OutputStructureStrategy, PlainOutputStructureStrategy, YearMonthOutputStructureStrategy};
 use crate::model::library::PhotosLibrary;
-use crate::repo::album::AlbumRepositoryImpl;
-use crate::repo::asset::{AssetWithAlbumInfoRepoImpl, FilterMode};
+use crate::repo::album::AlbumRepository;
+use crate::repo::asset::{AssetWithAlbumInfoRepo, FilterMode};
 
 mod model;
 mod album_list;
@@ -41,38 +41,34 @@ enum Commands {
 #[derive(Args, Debug)]
 struct ExportArgs {
 
-    /// Path of the destination directory
-    destination_path: String,
+    /// Output directory
+    output_dir: String,
 
-    /// Export photos to the root of the export directory
-    #[arg(short = 'p', long = "plain", group = "strategy")]
-    plain: bool,
-
-    /// Export photos grouped by album
-    #[arg(short = 'a', long = "album", group = "strategy")]
+    /// Output by album
+    #[arg(short = 'a', long = "by-album", group = "strategy")]
     album: bool,
 
-    /// Export photos grouped by year/month
-    #[arg(short = 'y', long = "year-month", group = "strategy")]
+    /// Output by year/month
+    #[arg(short = 'm', long = "by-year-month", group = "strategy")]
     year_month: bool,
 
-    /// Export photos grouped by year/month/album
-    #[arg(short = 'm', long = "year-month-album", group = "strategy")]
+    /// Output by year/month/album
+    #[arg(short = 'M', long = "by-year-month-album", group = "strategy")]
     year_month_album: bool,
 
-    /// Only include albums matching the given ids
+    /// Include albums matching the given ids
     #[arg(short = 'i', long = "include", group = "ids", num_args = 1.., value_delimiter = ' ')]
     include: Option<Vec<i32>>,
 
-    /// Exclude all albums matching the given ids
+    /// Exclude albums matching the given ids
     #[arg(short = 'e', long = "exclude", group = "ids", num_args = 1.., value_delimiter = ' ')]
     exclude: Option<Vec<i32>>,
 
     /// Restore original filenames
-    #[arg(short = 'o', long = "restore-original-filenames")]
+    #[arg(short = 'r', long = "restore-original-filenames")]
     restore_original_filenames: bool,
 
-    /// Flatten albums
+    /// Flatten album structure
     #[arg(short = 'f', long = "flatten-albums")]
     flatten_albums: bool,
 
@@ -87,52 +83,57 @@ fn main() {
     let library = PhotosLibrary::new(&args.library_path);
 
     match args.command {
-        Commands::ListAlbums => list_albums(&library.db_path()),
+        Commands::ListAlbums => list_albums(library.db_path()),
         Commands::ExportAssets(export_args) => export_assets(library, export_args)
     }
 }
 
-fn list_albums(db_path: &String) {
-    let album_repo = AlbumRepositoryImpl::new(&db_path);
+fn list_albums(db_path: String) {
+    let album_repo = AlbumRepository::new(db_path);
     let album_lister = AlbumListPrinter::new(&album_repo);
     album_lister.print_album_tree();
 }
 
 fn export_assets(photos_library: PhotosLibrary, args: ExportArgs) {
-    let db_path = photos_library.db_path();
-    let asset_filter_mode = match (args.include, args.exclude) {
-        (Some(ids), _) => FilterMode::IncludeAlbumIds(ids),
-        (_, Some(ids)) => FilterMode::ExcludeAlbumIds(ids),
-        _ => FilterMode::None
-    };
-    let repo = AssetWithAlbumInfoRepoImpl::new(&db_path, asset_filter_mode);
-
-    let output_strategy: Box<dyn OutputStructureStrategy> =
-        match (args.plain, args.album, args.year_month, args.year_month_album) {
-            (true, _, _, _) => Box::new(PlainOutputStructureStrategy::new()),
-            (_, true, _, _) => Box::new(AlbumOutputStructureStrategy::new(args.flatten_albums)),
-            (_, _, true, _) => Box::new(YearMonthOutputStructureStrategy::asset_date_based()),
-            (_, _, _, true) => Box::new(
-                JoiningOutputStructureStrategy::new(
-                    vec![
-                        Box::new(YearMonthOutputStructureStrategy::album_date_based()),
-                        Box::new(AlbumOutputStructureStrategy::new(args.flatten_albums))
-                    ]
-                )
-            ),
-            _ => Box::new(PlainOutputStructureStrategy::new())
+    let asset_repo = {
+        let filter = if let Some(ids) = args.include {
+            FilterMode::IncludeAlbumIds(ids)
+        } else if let Some(ids) = args.exclude {
+            FilterMode::ExcludeAlbumIds(ids)
+        } else {
+            FilterMode::None
         };
 
-    let copy_strategy: Box<dyn AssetCopyStrategy> = match args.dry_run {
-        true => Box::new(DryRunAssetCopyStrategy::new()),
-        false => Box::new(DefaultAssetCopyStrategy::new())
+        AssetWithAlbumInfoRepo::new(photos_library.db_path(), filter)
     };
 
-    let exporter = Exporter::new(&repo, output_strategy.as_ref(), copy_strategy.as_ref());
+    let output_strategy: Box<dyn OutputStructureStrategy> = if args.album {
+        Box::new(AlbumOutputStructureStrategy::new(args.flatten_albums))
+    } else if args.year_month {
+        Box::new(YearMonthOutputStructureStrategy::asset_date_based())
+    } else if args.year_month_album {
+        Box::new(
+            JoiningOutputStructureStrategy::new(
+                vec![
+                    Box::new(YearMonthOutputStructureStrategy::album_date_based()),
+                    Box::new(AlbumOutputStructureStrategy::new(args.flatten_albums))
+                ]
+            )
+        )
+    } else {
+        Box::new(PlainOutputStructureStrategy::new())
+    };
 
+    let copy_strategy: Box<dyn AssetCopyStrategy> = if args.dry_run {
+        Box::new(DryRunAssetCopyStrategy::new())
+    } else {
+        Box::new(DefaultAssetCopyStrategy::new())
+    };
+
+    let exporter = Exporter::new(&asset_repo, output_strategy.as_ref(), copy_strategy.as_ref());
     exporter.export(
         Path::new(&photos_library.original_assets_path()),
-        Path::new(&args.destination_path),
+        Path::new(&args.output_dir),
         args.restore_original_filenames
     );
 }

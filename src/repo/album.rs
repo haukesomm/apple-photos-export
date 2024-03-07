@@ -3,24 +3,18 @@ use rusqlite::{Connection, OpenFlags, Result};
 use crate::model::album::{Album, Kind};
 use crate::model::cocoa_date::parse_cocoa_timestamp;
 
-pub trait AlbumRepository {
-    fn get_all(&self) -> Result<Vec<Album>>;
+pub struct AlbumRepository {
+    db_path: String
 }
 
-pub struct AlbumRepositoryImpl<'a> {
-    db_path: &'a String
-}
+impl AlbumRepository {
 
-impl AlbumRepositoryImpl<'_> {
-    pub fn new(db_path: &String) -> AlbumRepositoryImpl {
-        AlbumRepositoryImpl { db_path }
+    pub fn new(db_path: String) -> AlbumRepository {
+        AlbumRepository { db_path }
     }
-}
 
-impl AlbumRepository for AlbumRepositoryImpl<'_> {
-
-    fn get_all(&self) -> Result<Vec<Album>> {
-        let conn = Connection::open_with_flags(self.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    pub fn get_all(&self) -> Result<Vec<Album>> {
+        let conn = Connection::open_with_flags(&self.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
 
         let mut statement = conn.prepare("\
         SELECT album.Z_PK

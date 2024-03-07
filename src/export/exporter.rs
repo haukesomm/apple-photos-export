@@ -8,7 +8,7 @@ use crate::export::structure::OutputStructureStrategy;
 use crate::repo::asset::AssetWithAlbumInfoRepo;
 
 pub struct Exporter<'a> {
-    repo: &'a dyn AssetWithAlbumInfoRepo,
+    repo: &'a AssetWithAlbumInfoRepo,
     output_strategy: &'a dyn OutputStructureStrategy,
     copy_strategy: &'a dyn AssetCopyStrategy
 }
@@ -16,7 +16,7 @@ pub struct Exporter<'a> {
 impl Exporter<'_> {
 
     pub fn new<'a>(
-        repo: &'a dyn AssetWithAlbumInfoRepo,
+        repo: &'a AssetWithAlbumInfoRepo,
         output_strategy: &'a dyn OutputStructureStrategy,
         copy_strategy: &'a dyn AssetCopyStrategy
     ) -> Exporter<'a> {
@@ -28,7 +28,7 @@ impl Exporter<'_> {
         let asset_count = assets.len();
 
         match confirmation_prompt(
-            format!("Export {} assets to {}?", assets.len(), output_dir.to_string_lossy()).as_str()
+            format!("Export {} assets to {}?", &asset_count, output_dir.to_string_lossy())
         ) {
             Answer::Yes => println!(),
             Answer::No => return
@@ -37,14 +37,17 @@ impl Exporter<'_> {
         assets.iter()
             .enumerate()
             .for_each(|(index, asset)| {
-                let relative_dir = self.output_strategy.get_relative_output_dir(asset);
-                let filename = match use_original_filenames {
-                    true => asset.original_filename.clone(),
-                    false => asset.filename.clone()
-                };
-
                 let source_path = asset_dir.join(asset.get_path());
-                let output_path = output_dir.join(relative_dir).join(filename);
+                let output_path = {
+                    let filename = if use_original_filenames {
+                        asset.original_filename.clone()
+                    } else {
+                        asset.filename.clone()
+                    };
+                    output_dir
+                        .join(self.output_strategy.get_relative_output_dir(asset))
+                        .join(filename)
+                };
 
                 println!(
                     "{} Exporting '{}' to '{}'",

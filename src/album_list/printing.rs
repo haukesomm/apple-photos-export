@@ -3,13 +3,13 @@ use crate::album_list::ascii_tree::build_tree;
 use crate::repo::album::AlbumRepository;
 
 
-pub struct AlbumListPrinter<'a> {
-    repo: &'a AlbumRepository
+pub struct AlbumListPrinter {
+    repo: AlbumRepository
 }
 
-impl AlbumListPrinter<'_> {
+impl AlbumListPrinter {
 
-    pub fn new(repo: &AlbumRepository) -> AlbumListPrinter {
+    pub fn new(repo: AlbumRepository) -> AlbumListPrinter {
         AlbumListPrinter { repo }
     }
 

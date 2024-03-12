@@ -1,7 +1,7 @@
 use rusqlite::{Connection, OpenFlags, Result};
 
 use crate::model::album::{Album, Kind};
-use crate::model::cocoa_date::parse_cocoa_timestamp;
+use crate::cocoa::parse_cocoa_timestamp;
 
 pub struct AlbumRepository {
     db_path: String

@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use chrono::NaiveDate;
 
 pub struct AssetWithAlbumInfo  {
@@ -10,12 +8,4 @@ pub struct AssetWithAlbumInfo  {
     pub date: NaiveDate,
     pub album_path: Option<String>,
     pub album_start_date: Option<NaiveDate>
-}
-
-impl AssetWithAlbumInfo {
-    pub fn get_path(&self) -> PathBuf {
-        PathBuf::new()
-            .join(self.dir.clone())
-            .join(self.filename.clone())
-    }
 }

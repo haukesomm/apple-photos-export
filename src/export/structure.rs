@@ -1,4 +1,5 @@
-use std::path::{Path, PathBuf};
+use std::ffi::OsStr;
+use std::path::PathBuf;
 
 use chrono::NaiveDate;
 
@@ -6,7 +7,7 @@ use crate::model::asset::AssetWithAlbumInfo;
 
 pub trait OutputStructureStrategy {
 
-    fn get_relative_output_dir(&self, asset: &AssetWithAlbumInfo) -> String;
+    fn get_relative_output_dir(&self, asset: &AssetWithAlbumInfo) -> PathBuf;
 }
 
 
@@ -14,14 +15,14 @@ pub struct PlainOutputStructureStrategy;
 
 impl PlainOutputStructureStrategy {
     pub fn new() -> PlainOutputStructureStrategy {
-        PlainOutputStructureStrategy {}
+        PlainOutputStructureStrategy
     }
 }
 
 impl OutputStructureStrategy for PlainOutputStructureStrategy {
 
-    fn get_relative_output_dir(&self, _: &AssetWithAlbumInfo) -> String {
-        "".to_string()
+    fn get_relative_output_dir(&self, _: &AssetWithAlbumInfo) -> PathBuf {
+        PathBuf::new()
     }
 }
 
@@ -37,26 +38,24 @@ impl AlbumOutputStructureStrategy {
 }
 
 impl OutputStructureStrategy for AlbumOutputStructureStrategy {
-    fn get_relative_output_dir(&self, asset: &AssetWithAlbumInfo) -> String {
-        let path_raw = match &asset.album_path {
-            None => String::new(),
-            Some(p) => p.clone()
-        };
-        let path = Path::new(&path_raw);
+    fn get_relative_output_dir(&self, asset: &AssetWithAlbumInfo) -> PathBuf {
+        let path = PathBuf::new()
+            .join(asset.album_path.clone().unwrap_or(String::new()));
 
         if self.flatten {
-            path.file_name().unwrap().to_string_lossy().to_string()
+            let filename = path.file_name().unwrap_or(OsStr::new(""));
+            PathBuf::new().join(filename)
         } else {
-            path.to_string_lossy().to_string()
+            path
         }
     }
 }
 
 
-pub type DateSelectorFunc = dyn Fn(&AssetWithAlbumInfo) -> NaiveDate;
+type DateSelectorFunc = dyn Fn(&AssetWithAlbumInfo) -> NaiveDate;
 
 pub struct YearMonthOutputStructureStrategy<'a> {
-    pub date_selector: &'a DateSelectorFunc
+    date_selector: &'a DateSelectorFunc
 }
 
 impl YearMonthOutputStructureStrategy<'_> {
@@ -75,15 +74,16 @@ impl YearMonthOutputStructureStrategy<'_> {
 }
 
 impl OutputStructureStrategy for YearMonthOutputStructureStrategy<'_> {
-    fn get_relative_output_dir(&self, asset: &AssetWithAlbumInfo) -> String {
+    fn get_relative_output_dir(&self, asset: &AssetWithAlbumInfo) -> PathBuf {
         let datetime = (self.date_selector)(asset);
-        format!("{}", datetime.format("%Y/%m/"))
+        let formatted = format!("{}", datetime.format("%Y/%m/"));
+        PathBuf::new().join(formatted)
     }
 }
 
 
 pub struct JoiningOutputStructureStrategy {
-    pub strategies: Vec<Box<dyn OutputStructureStrategy>>
+    strategies: Vec<Box<dyn OutputStructureStrategy>>
 }
 
 impl JoiningOutputStructureStrategy {
@@ -93,17 +93,12 @@ impl JoiningOutputStructureStrategy {
 }
 
 impl OutputStructureStrategy for JoiningOutputStructureStrategy {
-    fn get_relative_output_dir(&self, asset: &AssetWithAlbumInfo) -> String {
+    fn get_relative_output_dir(&self, asset: &AssetWithAlbumInfo) -> PathBuf {
         self.strategies
             .iter()
             .fold(PathBuf::new(), |path, strategy| {
                 let dir = strategy.get_relative_output_dir(asset);
-                let p = Path::new(&dir);
-                path.join(p)
+                path.join(dir)
             })
-            .as_path()
-            .to_str()
-            .unwrap()
-            .to_string()
     }
 }

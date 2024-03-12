@@ -45,7 +45,6 @@ impl AssetCopyStrategy for DefaultAssetCopyStrategy {
         if let Some(parent) = dest.parent() {
             create_dir_all(parent).expect("Cannot create parent directories");
         }
-
         if let Err(e) = copy(src, dest) {
             panic!("Error copying file: {}", e)
         }

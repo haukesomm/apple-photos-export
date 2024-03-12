@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 
-pub struct PhotosLibrary<'a> {
-    pub path: &'a String
+pub struct PhotosLibrary {
+    pub path: String
 }
 
-impl PhotosLibrary<'_> {
+impl PhotosLibrary {
 
-    pub fn new(path: &String) -> PhotosLibrary {
+    pub fn new(path: String) -> PhotosLibrary {
         PhotosLibrary { path }
     }
 

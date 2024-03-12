@@ -23,7 +23,7 @@ It is intended for backup purposes and does not modify the library in any way.
 
 | Structure        | Description                                                                                                                                                                          |
 |------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Flat             | All images and videos are exported to the same directory                                                                                                                             |
+| Flat (default)   | All images and videos are exported to the same directory                                                                                                                             |
 | Album            | Images and videos are exported to a directory structure that reflects the album structure in the Photos Library                                                                      |
 | Year/Month       | Images and videos are exported to a directory structure that reflects the year and month of the creation date of the images and videos                                               |
 | Year/Month/Album | Images and videos are exported to a directory structure that reflects the year and month of the creation date of the images and videos and the album structure in the Photos Library |

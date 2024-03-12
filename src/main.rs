@@ -15,6 +15,7 @@ mod album_list;
 mod repo;
 mod export;
 mod confirmation;
+mod cocoa;
 
 /// Export photos from the macOS Photos library, organized by album and/or date.
 #[derive(Parser, Debug)]
@@ -80,7 +81,7 @@ struct ExportArgs {
 fn main() {
     let args = Arguments::parse();
 
-    let library = PhotosLibrary::new(&args.library_path);
+    let library = PhotosLibrary::new(args.library_path);
 
     match args.command {
         Commands::ListAlbums => list_albums(library.db_path()),
@@ -89,8 +90,9 @@ fn main() {
 }
 
 fn list_albums(db_path: String) {
-    let album_repo = AlbumRepository::new(db_path);
-    let album_lister = AlbumListPrinter::new(&album_repo);
+    let album_lister = AlbumListPrinter::new(
+        AlbumRepository::new(db_path)
+    );
     album_lister.print_album_tree();
 }
 
@@ -130,7 +132,7 @@ fn export_assets(photos_library: PhotosLibrary, args: ExportArgs) {
         Box::new(DefaultAssetCopyStrategy::new())
     };
 
-    let exporter = Exporter::new(&asset_repo, output_strategy.as_ref(), copy_strategy.as_ref());
+    let exporter = Exporter::new(asset_repo, output_strategy, copy_strategy);
     exporter.export(
         Path::new(&photos_library.original_assets_path()),
         Path::new(&args.output_dir),

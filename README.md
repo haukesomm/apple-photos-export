@@ -11,6 +11,10 @@ It is intended for backup purposes and does not modify the library in any way.
 > guaranteed to work with future versions of the Photos app or at all. Use it at your own risk and always keep a backup
 > of your library.
 
+Quick links to installation and usage instructions:
+- [Building and Running locally](#building-and-running-locally)
+- [Installation via Homebrew](#installation-via-homebrew)
+
 ## Highlights
 
 - Lists all albums of the library as an ascii tree
@@ -53,10 +57,28 @@ The program has been tested on the following OSs with the following versions of 
 > The above table only contains vesion that I explicitly tested.
 > However, there's a high chance this tool works on other versions too.
 
-## Usage
+## Building and Running locally
 
-Example:
 ```shell
 $ cargo build --release
 $ ./target/release/apple-photos-export --help
+```
+
+## Installation via Homebrew
+
+### Installation
+
+```shell
+$ brew install haukesomm/repo/apple-photos-export
+```
+OR
+```shell
+$ brew tap haukesomm/repo
+$ brew install apple-photos-export
+```
+
+### Usage
+
+```shell
+$ apple-photos-export --help
 ```

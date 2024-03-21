@@ -2,6 +2,7 @@ use std::fs::{copy, create_dir_all};
 use std::path::Path;
 
 use colored::Colorize;
+use derive_new::new;
 
 pub trait AssetCopyStrategy {
 
@@ -11,13 +12,8 @@ pub trait AssetCopyStrategy {
 }
 
 
+#[derive(new)]
 pub struct DryRunAssetCopyStrategy;
-
-impl DryRunAssetCopyStrategy {
-    pub fn new() -> DryRunAssetCopyStrategy {
-        DryRunAssetCopyStrategy {}
-    }
-}
 
 impl AssetCopyStrategy for DryRunAssetCopyStrategy {
 
@@ -31,13 +27,8 @@ impl AssetCopyStrategy for DryRunAssetCopyStrategy {
 }
 
 
+#[derive(new)]
 pub struct DefaultAssetCopyStrategy;
-
-impl DefaultAssetCopyStrategy {
-    pub fn new() -> DefaultAssetCopyStrategy {
-        DefaultAssetCopyStrategy
-    }
-}
 
 impl AssetCopyStrategy for DefaultAssetCopyStrategy {
 

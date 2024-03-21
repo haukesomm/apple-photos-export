@@ -1,13 +1,15 @@
 use std::path::{Path, PathBuf};
 
 use colored::Colorize;
+use derive_new::new;
 
-use crate::confirmation::{Answer, confirmation_prompt};
 use crate::export::copying::AssetCopyStrategy;
 use crate::export::structure::OutputStructureStrategy;
 use crate::model::asset::AssetWithAlbumInfo;
 use crate::repo::asset::AssetRepository;
+use crate::util::confirmation::{Answer, confirmation_prompt};
 
+#[derive(new)]
 pub struct Exporter {
     repo: Box<dyn AssetRepository>,
     output_strategy: Box<dyn OutputStructureStrategy>,
@@ -15,12 +17,6 @@ pub struct Exporter {
 }
 
 impl Exporter {
-
-    pub fn new(repo: Box<dyn AssetRepository>, output_strategy: Box<dyn OutputStructureStrategy>,
-               copy_strategy: Box<dyn AssetCopyStrategy>, ) -> Self {
-
-        Self { repo, output_strategy, copy_strategy }
-    }
 
     fn get_source_path(&self, asset_dir: &Path, asset: &AssetWithAlbumInfo) -> PathBuf {
         asset_dir

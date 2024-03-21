@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::fmt::Display;
+
 use ascii_tree::Tree;
 use ascii_tree::Tree::{Leaf, Node};
 use colored::Colorize;
+
 use crate::model::album::{Album, Kind};
 
 pub fn build_tree(albums: &Vec<Album>) -> Tree {

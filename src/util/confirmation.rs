@@ -1,6 +1,6 @@
 use std::io::{stdin, stdout, Write};
 
-use crate::confirmation::Answer::{No, Yes};
+use crate::util::confirmation::Answer::{No, Yes};
 
 const CHARACTER_YES: char = 'y';
 const CHARACTER_NO: char = 'n';

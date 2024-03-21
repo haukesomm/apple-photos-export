@@ -1,2 +1,2 @@
-pub mod printing;
+pub mod printer;
 mod ascii_tree;

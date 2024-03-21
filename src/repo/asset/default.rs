@@ -2,9 +2,8 @@ use derive_new::new;
 use rusqlite::{Connection, OpenFlags, params_from_iter, Result};
 
 use crate::model::asset::AssetWithAlbumInfo;
-use crate::cocoa::parse_cocoa_timestamp;
 use crate::repo::asset::AssetRepository;
-
+use crate::util::cocoa::parse_cocoa_timestamp;
 
 pub enum FilterMode {
     None,

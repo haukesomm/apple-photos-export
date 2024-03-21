@@ -1,9 +1,9 @@
 use derive_new::new;
 use rusqlite::{Connection, OpenFlags, Result};
 
-use crate::cocoa::parse_cocoa_timestamp;
 use crate::model::asset::AssetWithAlbumInfo;
 use crate::repo::asset::AssetRepository;
+use crate::util::cocoa::parse_cocoa_timestamp;
 
 const HIDDEN_ALBUM_OUTPUT_DIR: &str = "_hidden";
 

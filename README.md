@@ -32,18 +32,14 @@ Quick links to installation and usage instructions:
 | Year/Month       | Images and videos are exported to a directory structure that reflects the year and month of the creation date of the images and videos                                               |
 | Year/Month/Album | Images and videos are exported to a directory structure that reflects the year and month of the creation date of the images and videos and the album structure in the Photos Library |
 
-## Database / Library file structure
+## Changelog
 
-The Photos Library is a package that contains an SQLite database and a directory structure with the actual image and 
-video files. The database contains information about the images and videos, such as the creation date, file name, and
-album structure. The directory structure contains the actual image and video files, which are organized in a way that
-is not directly accessible by the user.
+Please find the changelog in the [CHANGELOG.md](CHANGELOG.md) file.
 
-The exact structure of the Photos Library package is not documented by Apple and may change with future versions of the
-Photos app. However, this project has a wiki that documents the structure of the library package as of the time of
-writing:
+## Documentation
 
-[📖 Wiki](https://github.com/haukesomm/apple-photos-export/wiki)
+The internal strucutre and findings from the reverse-engineering of the Photos Library are documented in the
+[📖 Wiki](https://github.com/haukesomm/apple-photos-export/wiki).
 
 ## Compatibility
 

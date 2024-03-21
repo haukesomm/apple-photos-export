@@ -20,7 +20,7 @@ pub fn confirmation_prompt(prompt: String) -> Answer {
     } {
         input.clear();
 
-        print!("{} [{}{}]", prompt, CHARACTER_YES, CHARACTER_NO);
+        print!("{} [{}{}] ", prompt, CHARACTER_YES, CHARACTER_NO);
         let _ = stdout().flush();
         stdin().read_line(&mut input).expect("Unable to read user input");
 

@@ -6,20 +6,20 @@ use crate::confirmation::{Answer, confirmation_prompt};
 use crate::export::copying::AssetCopyStrategy;
 use crate::export::structure::OutputStructureStrategy;
 use crate::model::asset::AssetWithAlbumInfo;
-use crate::repo::asset::AssetWithAlbumInfoRepo;
+use crate::repo::asset::AssetRepository;
 
 pub struct Exporter {
-    repo: AssetWithAlbumInfoRepo,
+    repo: Box<dyn AssetRepository>,
     output_strategy: Box<dyn OutputStructureStrategy>,
     copy_strategy: Box<dyn AssetCopyStrategy>,
 }
 
 impl Exporter {
 
-    pub fn new(repo: AssetWithAlbumInfoRepo, output_strategy: Box<dyn OutputStructureStrategy>,
-               copy_strategy: Box<dyn AssetCopyStrategy>, ) -> Exporter {
+    pub fn new(repo: Box<dyn AssetRepository>, output_strategy: Box<dyn OutputStructureStrategy>,
+               copy_strategy: Box<dyn AssetCopyStrategy>, ) -> Self {
 
-        Exporter { repo, output_strategy, copy_strategy }
+        Self { repo, output_strategy, copy_strategy }
     }
 
     fn get_source_path(&self, asset_dir: &Path, asset: &AssetWithAlbumInfo) -> PathBuf {

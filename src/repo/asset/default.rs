@@ -1,7 +1,10 @@
+use derive_new::new;
 use rusqlite::{Connection, OpenFlags, params_from_iter, Result};
 
 use crate::model::asset::AssetWithAlbumInfo;
 use crate::cocoa::parse_cocoa_timestamp;
+use crate::repo::asset::AssetRepository;
+
 
 pub enum FilterMode {
     None,
@@ -10,18 +13,14 @@ pub enum FilterMode {
 }
 
 
-pub struct AssetWithAlbumInfoRepo {
+#[derive(new)]
+pub struct DefaultAssetWithAlbumInfoRepo {
     db_path: String,
     filter_mode: FilterMode
 }
 
-impl AssetWithAlbumInfoRepo {
-
-    pub fn new(db_path: String, filter_mode: FilterMode) -> AssetWithAlbumInfoRepo {
-        AssetWithAlbumInfoRepo { db_path, filter_mode }
-    }
-
-    pub fn get_all(&self) -> Result<Vec<AssetWithAlbumInfo>> {
+impl AssetRepository for DefaultAssetWithAlbumInfoRepo {
+    fn get_all(&self) -> Result<Vec<AssetWithAlbumInfo>> {
         let conn = Connection::open_with_flags(&self.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
 
         let mut sql = String::from("\
@@ -55,7 +54,7 @@ impl AssetWithAlbumInfoRepo {
             LEFT JOIN Z_28ASSETS album_mapping ON assets.Z_PK = album_mapping.Z_3ASSETS
             LEFT JOIN ZGENERICALBUM album ON album_mapping.Z_28ALBUMS = album.Z_PK
             LEFT JOIN ALBUM_PATH_CTE album_path ON album.Z_PK = album_path.Z_PK
-            WHERE (album.ZKIND IS NULL OR album.ZKIND IN (2, 3999, 4000))"
+            WHERE assets.ZHIDDEN = 0 AND (album.ZKIND IS NULL OR album.ZKIND IN (2, 3999, 4000))"
         );
 
         let (filter_clause, ids) = match &self.filter_mode {

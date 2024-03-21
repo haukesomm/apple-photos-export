@@ -8,7 +8,10 @@ use crate::export::exporter::Exporter;
 use crate::export::structure::{AlbumOutputStructureStrategy, JoiningOutputStructureStrategy, OutputStructureStrategy, PlainOutputStructureStrategy, YearMonthOutputStructureStrategy};
 use crate::model::library::PhotosLibrary;
 use crate::repo::album::AlbumRepository;
-use crate::repo::asset::{AssetWithAlbumInfoRepo, FilterMode};
+use crate::repo::asset::AssetRepository;
+use crate::repo::asset::combining::CombiningAssetRepository;
+use crate::repo::asset::default::{DefaultAssetWithAlbumInfoRepo, FilterMode};
+use crate::repo::asset::hidden::HiddenAssetRepository;
 
 mod model;
 mod album_list;
@@ -58,12 +61,16 @@ struct ExportArgs {
     year_month_album: bool,
 
     /// Include albums matching the given ids
-    #[arg(short = 'i', long = "include", group = "ids", num_args = 1.., value_delimiter = ' ')]
+    #[arg(short = 'i', long = "include", group = "ids", num_args = 0.., value_delimiter = ' ')]
     include: Option<Vec<i32>>,
 
     /// Exclude albums matching the given ids
     #[arg(short = 'e', long = "exclude", group = "ids", num_args = 1.., value_delimiter = ' ')]
     exclude: Option<Vec<i32>>,
+
+    /// Include hidden assets
+    #[arg(short = 'H', long = "include-hidden")]
+    include_hidden: bool,
 
     /// Restore original filenames
     #[arg(short = 'r', long = "restore-original-filenames")]
@@ -97,17 +104,29 @@ fn list_albums(db_path: String) {
 }
 
 fn export_assets(photos_library: PhotosLibrary, args: ExportArgs) {
-    let asset_repo = {
-        let filter = if let Some(ids) = args.include {
-            FilterMode::IncludeAlbumIds(ids)
-        } else if let Some(ids) = args.exclude {
-            FilterMode::ExcludeAlbumIds(ids)
-        } else {
-            FilterMode::None
-        };
+    let mut asset_repos: Vec<Box<dyn AssetRepository>> = vec![
+        {
+            let filter = if let Some(ids) = args.include {
+                FilterMode::IncludeAlbumIds(ids)
+            } else if let Some(ids) = args.exclude {
+                FilterMode::ExcludeAlbumIds(ids)
+            } else {
+                FilterMode::None
+            };
 
-        AssetWithAlbumInfoRepo::new(photos_library.db_path(), filter)
-    };
+            Box::new(DefaultAssetWithAlbumInfoRepo::new(photos_library.db_path(), filter))
+        }
+    ];
+
+    if args.include_hidden {
+        asset_repos.push(
+            Box::new(HiddenAssetRepository::new(photos_library.db_path()))
+        );
+    }
+
+    let asset_repo = Box::new(
+        CombiningAssetRepository::new(asset_repos)
+    );
 
     let output_strategy: Box<dyn OutputStructureStrategy> = if args.album {
         Box::new(AlbumOutputStructureStrategy::new(args.flatten_albums))

@@ -3,6 +3,7 @@ use std::path::Path;
 use clap::{Args, Parser, Subcommand};
 
 use crate::album_list::printer::AlbumListPrinter;
+use crate::changelog::print_changelog;
 use crate::export::copying::{AssetCopyStrategy, DefaultAssetCopyStrategy, DryRunAssetCopyStrategy};
 use crate::export::exporter::Exporter;
 use crate::export::structure::{AlbumOutputStructureStrategy, JoiningOutputStructureStrategy, OutputStructureStrategy, PlainOutputStructureStrategy, YearMonthOutputStructureStrategy};
@@ -18,15 +19,13 @@ mod album_list;
 mod repo;
 mod export;
 mod util;
+mod changelog;
 
 
 /// Export photos from the macOS Photos library, organized by album and/or date.
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Arguments {
-
-    /// Path of the library file
-    library_path: String,
 
     #[command(subcommand)]
     command: Commands,
@@ -35,15 +34,28 @@ struct Arguments {
 #[derive(Subcommand, Debug)]
 enum Commands {
 
+    /// Print the changelog
+    Changelog,
+
     /// List all albums in the library
-    ListAlbums,
+    ListAlbums(ListAlbumsArgs),
 
     /// Export assets from the library to a given location
     Export(ExportArgs)
 }
 
 #[derive(Args, Debug)]
+struct ListAlbumsArgs {
+
+    /// Path to the Photos library
+    library_path: String,
+}
+
+#[derive(Args, Debug)]
 struct ExportArgs {
+
+    /// Path to the Photos library
+    library_path: String,
 
     /// Output directory
     output_dir: String,
@@ -89,11 +101,13 @@ struct ExportArgs {
 fn main() {
     let args = Arguments::parse();
 
-    let library = PhotosLibrary::new(args.library_path);
-
     match args.command {
-        Commands::ListAlbums => list_albums(library.db_path()),
-        Commands::Export(export_args) => export_assets(library, export_args)
+        Commands::Changelog => print_changelog().unwrap(),
+        Commands::ListAlbums(list_args) => {
+            let photos_library = PhotosLibrary::new(list_args.library_path);
+            list_albums(photos_library.db_path());
+        },
+        Commands::Export(export_args) => export_assets(export_args)
     }
 }
 
@@ -106,7 +120,9 @@ fn list_albums(db_path: String) {
 }
 
 
-fn export_assets(photos_library: PhotosLibrary, args: ExportArgs) {
+fn export_assets(args: ExportArgs) {
+    let photos_library = PhotosLibrary::new(args.library_path.clone());
+
     let asset_repo = setup_asset_repo(photos_library.db_path(), &args);
     let output_strategy = setup_output_strategy(&args);
     let copy_strategy = setup_copy_strategy(&args);

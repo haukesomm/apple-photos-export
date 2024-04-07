@@ -1,3 +1,3 @@
 pub mod album;
 pub mod asset;
-pub mod library;
+pub mod internal_resource;

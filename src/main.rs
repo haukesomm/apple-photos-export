@@ -2,24 +2,22 @@ use std::path::Path;
 
 use clap::{Args, Parser, Subcommand};
 
-use crate::album_list::printer::AlbumListPrinter;
+use crate::album_list::print_album_tree;
 use crate::changelog::print_changelog;
+use crate::db::repo::album::AlbumRepository;
+use crate::db::repo::exportable_assets::{AlbumFilter, ExportableAssetsRepository};
 use crate::export::copying::{AssetCopyStrategy, DefaultAssetCopyStrategy, DryRunAssetCopyStrategy};
 use crate::export::exporter::Exporter;
 use crate::export::structure::{AlbumOutputStructureStrategy, JoiningOutputStructureStrategy, OutputStructureStrategy, PlainOutputStructureStrategy, YearMonthOutputStructureStrategy};
-use crate::model::library::PhotosLibrary;
-use crate::repo::album::AlbumRepository;
-use crate::repo::asset::AssetRepository;
-use crate::repo::asset::combining::CombiningAssetRepository;
-use crate::repo::asset::default::{DefaultAssetWithAlbumInfoRepo, FilterMode};
-use crate::repo::asset::hidden::HiddenAssetRepository;
+use crate::library::PhotosLibrary;
 
-mod model;
 mod album_list;
-mod repo;
 mod export;
 mod util;
 mod changelog;
+mod db;
+mod foundation;
+pub mod library;
 
 
 /// Export photos from the macOS Photos library, organized by album and/or date.
@@ -45,14 +43,14 @@ enum Commands {
 }
 
 #[derive(Args, Debug)]
-struct ListAlbumsArgs {
+pub struct ListAlbumsArgs {
 
     /// Path to the Photos library
     library_path: String,
 }
 
 #[derive(Args, Debug)]
-struct ExportArgs {
+pub struct ExportArgs {
 
     /// Path to the Photos library
     library_path: String,
@@ -104,19 +102,11 @@ fn main() {
     match args.command {
         Commands::Changelog => print_changelog().unwrap(),
         Commands::ListAlbums(list_args) => {
-            let photos_library = PhotosLibrary::new(list_args.library_path);
-            list_albums(photos_library.db_path());
+            let library = PhotosLibrary::new(list_args.library_path);
+            print_album_tree(library.db_path());
         },
         Commands::Export(export_args) => export_assets(export_args)
     }
-}
-
-
-fn list_albums(db_path: String) {
-    let album_lister = AlbumListPrinter::new(
-        AlbumRepository::new(db_path)
-    );
-    album_lister.print_album_tree();
 }
 
 
@@ -124,8 +114,8 @@ fn export_assets(args: ExportArgs) {
     let photos_library = PhotosLibrary::new(args.library_path.clone());
 
     let asset_repo = setup_asset_repo(photos_library.db_path(), &args);
-    let output_strategy = setup_output_strategy(&args);
-    let copy_strategy = setup_copy_strategy(&args);
+    let output_strategy = setup_output_strategy(photos_library.db_path(), &args);
+    let copy_strategy = setup_copy_strategy(args.dry_run);
 
     let exporter = Exporter::new(asset_repo, output_strategy, copy_strategy);
     exporter.export(
@@ -135,35 +125,41 @@ fn export_assets(args: ExportArgs) {
     );
 }
 
-fn setup_asset_repo(db_path: String, args: &ExportArgs) -> Box<dyn AssetRepository> {
-    let mut asset_repos: Vec<Box<dyn AssetRepository>> = vec![
+fn setup_asset_repo(db_path: String, args: &ExportArgs) -> ExportableAssetsRepository {
+    ExportableAssetsRepository::new(
+        db_path,
+        args.include_hidden,
         {
-            let filter = if let Some(ids) = args.include.clone() {
-                FilterMode::IncludeAlbumIds(ids)
+            if let Some(ids) = args.include.clone() {
+                AlbumFilter::Include(ids)
             } else if let Some(ids) = args.exclude.clone() {
-                FilterMode::ExcludeAlbumIds(ids)
+                AlbumFilter::Exclude(ids)
             } else {
-                FilterMode::None
-            };
-
-            Box::new(DefaultAssetWithAlbumInfoRepo::new(db_path.clone(), filter))
+                AlbumFilter::None
+            }
         }
-    ];
-
-    if args.include_hidden {
-        asset_repos.push(
-            Box::new(HiddenAssetRepository::new(db_path.clone()))
-        );
-    }
-
-    Box::new(
-        CombiningAssetRepository::new(asset_repos)
     )
 }
 
-fn setup_output_strategy(args: &ExportArgs) -> Box<dyn OutputStructureStrategy> {
+fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputStructureStrategy> {
+
+    // TODO: Find a more elegant solution
+    fn setup_album_output_strategy(db_path: String, flatten_albums: bool) -> Box<dyn OutputStructureStrategy> {
+        let album_repo = AlbumRepository::new(db_path);
+        let albums_by_id = album_repo.get_all().unwrap().into_iter()
+            .map(|a| (a.id, a))
+            .collect();
+
+        Box::new(
+            AlbumOutputStructureStrategy::new(
+                flatten_albums,
+                albums_by_id
+            )
+        )
+    }
+
     if args.album {
-        Box::new(AlbumOutputStructureStrategy::new(args.flatten_albums))
+        setup_album_output_strategy(db_path, args.flatten_albums)
     } else if args.year_month {
         Box::new(YearMonthOutputStructureStrategy::asset_date_based())
     } else if args.year_month_album {
@@ -171,7 +167,7 @@ fn setup_output_strategy(args: &ExportArgs) -> Box<dyn OutputStructureStrategy> 
             JoiningOutputStructureStrategy::new(
                 vec![
                     Box::new(YearMonthOutputStructureStrategy::album_date_based()),
-                    Box::new(AlbumOutputStructureStrategy::new(args.flatten_albums))
+                    setup_album_output_strategy(db_path, args.flatten_albums)
                 ]
             )
         )
@@ -180,8 +176,8 @@ fn setup_output_strategy(args: &ExportArgs) -> Box<dyn OutputStructureStrategy> 
     }
 }
 
-fn setup_copy_strategy(args: &ExportArgs) -> Box<dyn AssetCopyStrategy> {
-    if args.dry_run {
+fn setup_copy_strategy(dry_run: bool) -> Box<dyn AssetCopyStrategy> {
+    if dry_run {
         Box::new(DryRunAssetCopyStrategy::new())
     } else {
         Box::new(DefaultAssetCopyStrategy::new())

@@ -6,23 +6,13 @@ The following is a list of changes made to the project in reverse chronological 
 
 ### Overview
 
-- Add `changelog` command to display this changelog from the CLI.
-- Add new feature to include hidden assets in the export. By default, hidden assets are not included.
-- Rearrange arguments: The library path is no longer the first argument. 
-Instead, it is now the first argument after the subcommand.
-- Internal code cleanup and refactoring.
-
-### CLI
-
-The following table lists the changes made to the CLI.
-
-| Status  | Type       | Old             | New                     | Note                                                                 |
-|---------|------------|-----------------|-------------------------|----------------------------------------------------------------------|
-| Added   | Subcommand |                 | `changelog`             | Displays this changelog.                                             |
-| Added   | Flag       |                 | `-H`/`--include-hidden` | Includes hidden assets in the export. <br> _More information below._ |
-| Renamed | Subcommand | `export-assets` | `export`                | Renamed to be shorter                                                |
-| Renamed | Flag       | `--include`     | `--include-albums`      | Renamed for better clarity                                           |
-| Renamed | Flag       | `--export`      | `--export-albums`       | Renamed for better clarity                                           |
+- Use [diesel](https://diesel.rs) ORM for database access.
+- Add `changelog` subcommand to display this changelog from the CLI.
+- Rename `export-assets` subcommand to `export`.
+- Rename `--include` flag to `--include-albums`.
+- Rename `--exclude` flag to `--exclude-albums`.
+- Add `-H`/`--include-hidden` export flag to include hidden assets in the export. By default, hidden assets are not included.
+- Loads of refactoring and code cleanup.
 
 ## `0.1.0`
 

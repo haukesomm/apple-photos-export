@@ -1,9 +1,11 @@
 use std::io::{stdout, Write};
+
 use termimad::{Area, Error, MadSkin, MadView};
 use termimad::crossterm::{event, queue, terminal};
 use termimad::crossterm::cursor::{Hide, Show};
 use termimad::crossterm::event::{Event, KeyEvent};
 use termimad::crossterm::terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
+
 use crate::changelog;
 
 const CHANGELOG: &str = include_str!("../CHANGELOG.md");

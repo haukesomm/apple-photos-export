@@ -9,8 +9,8 @@ edition = "2021"
 derive-new = "0.6.0"
 num-traits = "0.2.18"
 clap = { version = "4.5.1", features = ["derive"] }
-termimad = "0.29.1"
 chrono = "0.4.34"
-rusqlite = { version = "0.31.0", features = ["bundled"] }
+diesel = { version = "2.1.5", features = ["sqlite", "chrono"] }
 ascii_tree = "0.1.1"
+termimad = "0.29.1"
 colored = "2.1.0"

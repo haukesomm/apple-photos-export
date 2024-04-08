@@ -44,8 +44,8 @@ impl OutputStructureStrategy for AlbumOutputStructureStrategy {
         }
 
         if self.flatten {
-            let filename = path.file_name().unwrap_or(OsStr::new(""));
-            PathBuf::new().join(filename)
+            let last_segment = path.file_name().unwrap_or(OsStr::new(""));
+            PathBuf::new().join(last_segment)
         } else {
             path
         }

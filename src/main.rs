@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
@@ -116,12 +116,16 @@ fn export_assets(args: ExportArgs) {
     let output_strategy = setup_output_strategy(photos_library.db_path(), &args);
     let copy_strategy = setup_copy_strategy(args.dry_run);
 
-    let exporter = Exporter::new(asset_repo, output_strategy, copy_strategy, args.restore_original_filenames);
-
-    let result = exporter.export(
-        Path::new(&photos_library.original_assets_path()),
-        Path::new(&args.output_dir)
+    let exporter = Exporter::new(
+        asset_repo,
+        output_strategy,
+        copy_strategy,
+        args.restore_original_filenames,
+        PathBuf::from(photos_library.original_assets_path()),
+        PathBuf::from(args.output_dir)
     );
+
+    let result = exporter.export();
 
     if let Err(e) = result {
         eprintln!("Unexpected error during the asset export: {}", e);

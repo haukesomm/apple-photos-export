@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use chrono::NaiveDateTime;
 
 use crate::db::repo::exportable_assets::ExportableAssetInfo;
@@ -13,6 +15,14 @@ pub struct ExportAsset {
     pub favorite: bool,
     pub original_filename: String,
     pub album: Option<Album>,
+}
+
+impl ExportAsset {
+    pub fn path(&self) -> PathBuf {
+        PathBuf::new()
+            .join(&self.dir)
+            .join(&self.filename)
+    }
 }
 
 impl FromDbModel<ExportableAssetInfo> for ExportAsset {

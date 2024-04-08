@@ -49,12 +49,14 @@ diesel::table! {
         #[sql_name = "ZTRASHEDSTATE"]
         trashed -> Bool,
 
-        // TODO: Document this field
         #[sql_name = "ZVISIBILITYSTATE"]
         visibility_state -> Integer,
 
         #[sql_name = "ZCLOUDLOCALSTATE"]
-        cloud_local_state -> Bool
+        cloud_local_state -> Bool,
+
+        #[sql_name = "ZDUPLICATEASSETVISIBILITYSTATE"]
+        duplicate_asset_visibility_state -> Integer,
     }
 }
 

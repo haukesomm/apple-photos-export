@@ -37,6 +37,7 @@ impl ExportableAssetsRepository {
                 assets::trashed.eq(false)
                     .and(assets::hidden.eq_any([false, self.include_hidden]))
                     .and(assets::visibility_state.eq(0))
+                    .and(assets::duplicate_asset_visibility_state.eq(0))
             )
             .select(count(assets::id));
 
@@ -56,6 +57,7 @@ impl ExportableAssetsRepository {
                 assets::trashed.eq(false)
                     .and(assets::hidden.eq_any([false, self.include_hidden]))
                     .and(assets::visibility_state.eq(0))
+                    .and(assets::duplicate_asset_visibility_state.eq(0))
                     .and(internal_resources::local_availability.ne(1))
             )
             .select(count(assets::id));
@@ -82,6 +84,7 @@ impl ExportableAssetsRepository {
                 assets::trashed.eq(false)
                     .and(assets::hidden.eq_any([false, self.include_hidden]))
                     .and(assets::visibility_state.eq(0))
+                    .and(assets::duplicate_asset_visibility_state.eq(0))
                     .and(internal_resources::local_availability.eq(1))
                     .and(
                         albums::kind.is_null()

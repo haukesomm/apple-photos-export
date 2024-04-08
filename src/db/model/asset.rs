@@ -14,6 +14,7 @@ pub struct Asset  {
     pub trashed: bool,
     pub visibility_state: i32,
     pub cloud_local_state: bool,
+    pub duplicate_asset_visibility_state: i32,
 }
 
 #[derive(Clone, Queryable, Selectable, Identifiable, Associations)]

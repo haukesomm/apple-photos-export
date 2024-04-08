@@ -5,10 +5,11 @@ use ascii_tree::Tree;
 use ascii_tree::Tree::{Leaf, Node};
 use colored::Colorize;
 
-use crate::db::model::album::{Album, Kind};
+use crate::model::album::Album;
+use crate::model::album::Kind;
 
 pub fn build_tree(albums: &Vec<Album>) -> Tree {
-    let root = match albums.iter().find(|a| a.is_of_kind(Kind::Root)) {
+    let root = match albums.iter().find(|a| a.kind == Kind::Root) {
         None => panic!("Library does not contain a root album!"),
         Some(album) => album
     };
@@ -50,7 +51,7 @@ impl Display for Album {
             }
         ).dimmed();
 
-        let name = if self.is_of_kind(Kind::Root) {
+        let name = if self.kind == Kind::Root {
             "<root>".magenta().to_string()
         } else {
             self.name.clone().unwrap_or(String::from("<no name>"))

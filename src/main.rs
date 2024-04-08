@@ -10,6 +10,7 @@ use crate::export::copying::{AssetCopyStrategy, DefaultAssetCopyStrategy, DryRun
 use crate::export::exporter::Exporter;
 use crate::export::structure::{AlbumOutputStructureStrategy, JoiningOutputStructureStrategy, OutputStructureStrategy, PlainOutputStructureStrategy, YearMonthOutputStructureStrategy};
 use crate::library::PhotosLibrary;
+use crate::model::FromDbModel;
 
 mod album_list;
 mod export;
@@ -17,7 +18,8 @@ mod util;
 mod changelog;
 mod db;
 mod foundation;
-pub mod library;
+mod library;
+mod model;
 
 
 /// Export photos from the macOS Photos library, organized by album and/or date.
@@ -101,10 +103,7 @@ fn main() {
 
     match args.command {
         Commands::Changelog => print_changelog().unwrap(),
-        Commands::ListAlbums(list_args) => {
-            let library = PhotosLibrary::new(list_args.library_path);
-            print_album_tree(library.db_path());
-        },
+        Commands::ListAlbums(list_args) => print_album_tree(list_args.library_path),
         Commands::Export(export_args) => export_assets(export_args)
     }
 }
@@ -117,12 +116,16 @@ fn export_assets(args: ExportArgs) {
     let output_strategy = setup_output_strategy(photos_library.db_path(), &args);
     let copy_strategy = setup_copy_strategy(args.dry_run);
 
-    let exporter = Exporter::new(asset_repo, output_strategy, copy_strategy);
-    exporter.export(
+    let exporter = Exporter::new(asset_repo, output_strategy, copy_strategy, args.restore_original_filenames);
+
+    let result = exporter.export(
         Path::new(&photos_library.original_assets_path()),
-        Path::new(&args.output_dir),
-        args.restore_original_filenames
+        Path::new(&args.output_dir)
     );
+
+    if let Err(e) = result {
+        eprintln!("Unexpected error during the asset export: {}", e);
+    }
 }
 
 fn setup_asset_repo(db_path: String, args: &ExportArgs) -> ExportableAssetsRepository {
@@ -146,8 +149,15 @@ fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputSt
     // TODO: Find a more elegant solution
     fn setup_album_output_strategy(db_path: String, flatten_albums: bool) -> Box<dyn OutputStructureStrategy> {
         let album_repo = AlbumRepository::new(db_path);
-        let albums_by_id = album_repo.get_all().unwrap().into_iter()
-            .map(|a| (a.id, a))
+        let albums_by_id = album_repo
+            .get_all()
+            .unwrap()
+            .into_iter()
+            .map(|a| {
+                let album = model::album::Album::from_db_model(a)
+                    .expect("Failed to convert Album from DB model");
+                (album.id, album)
+            })
             .collect();
 
         Box::new(

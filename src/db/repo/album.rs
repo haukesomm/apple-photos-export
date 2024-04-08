@@ -2,9 +2,10 @@ use derive_new::new;
 use diesel::{ExpressionMethods, QueryDsl, QueryResult, RunQueryDsl};
 
 use crate::db::connection::establish_connection;
-use crate::db::model::album::{Album, Kind};
+use crate::db::model::album::Album;
 use crate::db::schema::albums::{kind, start_date, trashed};
 use crate::db::schema::albums::dsl::albums;
+use crate::model::album::Kind;
 
 #[derive(new)]
 pub struct AlbumRepository {

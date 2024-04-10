@@ -8,16 +8,16 @@ use crate::model::album::Album;
 use crate::model::asset::ExportAsset;
 
 
-pub trait OutputStructureStrategy {
+pub trait OutputStrategy {
 
     fn get_relative_output_dir(&self, asset: &ExportAsset) -> Result<PathBuf, String>;
 }
 
 
 #[derive(new)]
-pub struct PlainOutputStructureStrategy;
+pub struct PlainOutputStrategy;
 
-impl OutputStructureStrategy for PlainOutputStructureStrategy {
+impl OutputStrategy for PlainOutputStrategy {
 
     fn get_relative_output_dir(&self, _: &ExportAsset) -> Result<PathBuf, String> {
         Ok(PathBuf::new())
@@ -26,19 +26,19 @@ impl OutputStructureStrategy for PlainOutputStructureStrategy {
 
 
 #[derive(new)]
-pub struct AlbumOutputStructureStrategy {
+pub struct AlbumOutputStrategy {
     flatten: bool,
     albums_by_id: HashMap<i32, Album>,
 }
 
-impl OutputStructureStrategy for AlbumOutputStructureStrategy {
+impl OutputStrategy for AlbumOutputStrategy {
 
     fn get_relative_output_dir(&self, asset: &ExportAsset) -> Result<PathBuf, String> {
-        let path = match asset.album.clone() {
+        let path = match &asset.album {
             None => PathBuf::new(),
             Some(a) => {
                 if self.flatten {
-                    PathBuf::from(a.name.unwrap_or(String::from("unnamed")))
+                    PathBuf::from(a.name.clone().unwrap_or(String::from("unnamed")))
                 } else {
                     a.get_path(&self.albums_by_id)?
                 }
@@ -51,20 +51,20 @@ impl OutputStructureStrategy for AlbumOutputStructureStrategy {
 
 type DateSelectorFunc = Box<dyn Fn(&ExportAsset) -> NaiveDateTime>;
 
-pub struct YearMonthOutputStructureStrategy {
+pub struct YearMonthOutputStrategy {
     datetime_selector: DateSelectorFunc
 }
 
-impl YearMonthOutputStructureStrategy {
+impl YearMonthOutputStrategy {
 
-    pub fn asset_date_based() -> YearMonthOutputStructureStrategy {
-        YearMonthOutputStructureStrategy {
+    pub fn asset_date_based() -> YearMonthOutputStrategy {
+        YearMonthOutputStrategy {
             datetime_selector: Box::new(|asset| asset.datetime)
         }
     }
 
-    pub fn album_date_based() -> YearMonthOutputStructureStrategy {
-        YearMonthOutputStructureStrategy {
+    pub fn album_date_based() -> YearMonthOutputStrategy {
+        YearMonthOutputStrategy {
             datetime_selector: Box::new(|asset| {
                 match asset.album.clone() {
                     None => asset.datetime,
@@ -75,7 +75,7 @@ impl YearMonthOutputStructureStrategy {
     }
 }
 
-impl OutputStructureStrategy for YearMonthOutputStructureStrategy {
+impl OutputStrategy for YearMonthOutputStrategy {
 
     fn get_relative_output_dir(&self, asset: &ExportAsset) -> Result<PathBuf, String> {
         let datetime = (self.datetime_selector)(asset);
@@ -86,11 +86,11 @@ impl OutputStructureStrategy for YearMonthOutputStructureStrategy {
 
 
 #[derive(new)]
-pub struct JoiningOutputStructureStrategy {
-    strategies: Vec<Box<dyn OutputStructureStrategy>>
+pub struct NestingOutputStrategyDecorator {
+    strategies: Vec<Box<dyn OutputStrategy>>
 }
 
-impl OutputStructureStrategy for JoiningOutputStructureStrategy {
+impl OutputStrategy for NestingOutputStrategyDecorator {
     fn get_relative_output_dir(&self, asset: &ExportAsset) -> Result<PathBuf, String> {
         self.strategies
             .iter()
@@ -98,5 +98,24 @@ impl OutputStructureStrategy for JoiningOutputStructureStrategy {
                 let dir = strategy.get_relative_output_dir(asset)?;
                 Ok(path.join(dir))
             })
+    }
+}
+
+
+#[derive(new)]
+pub struct HiddenAssetHandlingOutputStrategyDecorator {
+    strategy: Box<dyn OutputStrategy>
+}
+
+impl OutputStrategy for HiddenAssetHandlingOutputStrategyDecorator {
+    fn get_relative_output_dir(&self, asset: &ExportAsset) -> Result<PathBuf, String> {
+        let mut path = PathBuf::new();
+
+        if asset.hidden {
+            path.push("_hidden");
+        }
+        path.push(self.strategy.get_relative_output_dir(asset)?);
+
+        Ok(path)
     }
 }

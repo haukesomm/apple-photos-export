@@ -8,7 +8,7 @@ use crate::db::repo::album::AlbumRepository;
 use crate::db::repo::exportable_assets::{AlbumFilter, ExportableAssetsRepository};
 use crate::export::copying::{AssetCopyStrategy, DefaultAssetCopyStrategy, DryRunAssetCopyStrategy};
 use crate::export::exporter::Exporter;
-use crate::export::structure::{AlbumOutputStructureStrategy, JoiningOutputStructureStrategy, OutputStructureStrategy, PlainOutputStructureStrategy, YearMonthOutputStructureStrategy};
+use crate::export::structure::{AlbumOutputStrategy, HiddenAssetHandlingOutputStrategyDecorator, NestingOutputStrategyDecorator, OutputStrategy, PlainOutputStrategy, YearMonthOutputStrategy};
 use crate::library::PhotosLibrary;
 use crate::model::FromDbModel;
 
@@ -149,10 +149,10 @@ fn setup_asset_repo(db_path: String, args: &ExportArgs) -> ExportableAssetsRepos
     )
 }
 
-fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputStructureStrategy> {
+fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputStrategy> {
 
-    // TODO: Find a more elegant solution
-    fn setup_album_output_strategy(db_path: String, flatten_albums: bool) -> Box<dyn OutputStructureStrategy> {
+    // TODO: Clean up this function and use result
+    fn setup_album_output_strategy(db_path: String, flatten_albums: bool) -> Box<dyn OutputStrategy> {
         let album_repo = AlbumRepository::new(db_path);
         let albums_by_id = album_repo
             .get_all()
@@ -166,29 +166,33 @@ fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputSt
             .collect();
 
         Box::new(
-            AlbumOutputStructureStrategy::new(
+            AlbumOutputStrategy::new(
                 flatten_albums,
                 albums_by_id
             )
         )
     }
 
-    if args.album {
+    let strategy: Box<dyn OutputStrategy> = if args.album {
         setup_album_output_strategy(db_path, args.flatten_albums)
     } else if args.year_month {
-        Box::new(YearMonthOutputStructureStrategy::asset_date_based())
+        Box::new(YearMonthOutputStrategy::asset_date_based())
     } else if args.year_month_album {
         Box::new(
-            JoiningOutputStructureStrategy::new(
+            NestingOutputStrategyDecorator::new(
                 vec![
-                    Box::new(YearMonthOutputStructureStrategy::album_date_based()),
+                    Box::new(YearMonthOutputStrategy::album_date_based()),
                     setup_album_output_strategy(db_path, args.flatten_albums)
                 ]
             )
         )
     } else {
-        Box::new(PlainOutputStructureStrategy::new())
-    }
+        Box::new(PlainOutputStrategy::new())
+    };
+
+    Box::new(
+        HiddenAssetHandlingOutputStrategyDecorator::new(strategy)
+    )
 }
 
 fn setup_copy_strategy(dry_run: bool) -> Box<dyn AssetCopyStrategy> {

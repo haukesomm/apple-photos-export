@@ -13,6 +13,7 @@ pub struct ExportAsset {
     pub filename: String,
     pub datetime: NaiveDateTime,
     pub favorite: bool,
+    pub hidden: bool,
     pub original_filename: String,
     pub album: Option<Album>,
 }
@@ -36,6 +37,7 @@ impl FromDbModel<ExportableAssetInfo> for ExportAsset {
             filename: asset.filename,
             datetime: cocoa::parse_cocoa_timestamp(asset.date)?,
             favorite: asset.favorite,
+            hidden: asset.hidden,
             original_filename: additional_attribs.original_filename,
             album: match album {
                 None => None,

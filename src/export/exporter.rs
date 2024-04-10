@@ -5,7 +5,7 @@ use derive_new::new;
 
 use crate::db::repo::exportable_assets::ExportableAssetsRepository;
 use crate::export::copying::{AssetCopyStrategy, FinishState};
-use crate::export::structure::OutputStructureStrategy;
+use crate::export::structure::OutputStrategy;
 use crate::model::asset::ExportAsset;
 use crate::model::FromDbModel;
 use crate::util::confirmation::{Answer, confirmation_prompt};
@@ -13,7 +13,7 @@ use crate::util::confirmation::{Answer, confirmation_prompt};
 #[derive(new)]
 pub struct Exporter {
     repo: ExportableAssetsRepository,
-    output_strategy: Box<dyn OutputStructureStrategy>,
+    output_strategy: Box<dyn OutputStrategy>,
     copy_strategy: Box<dyn AssetCopyStrategy>,
     use_original_filenames: bool,
     library_path: PathBuf,
@@ -36,6 +36,11 @@ impl Exporter {
 
         let export_assets: Vec<ExportAsset> = self.get_exportable_assets()?;
         let export_assets_count = export_assets.len() as i64;
+
+        if export_assets_count == 0 {
+            no_matching_assets_prompt();
+            return Ok(());
+        }
 
         if let Answer::No = start_export_prompt(export_assets_count, out_dir.as_path()) {
             return Ok(());
@@ -118,19 +123,18 @@ impl Exporter {
     }
 }
 
+fn no_matching_assets_prompt() {
+    println!("{} No available assets match the specified criteria!", "Warning:".yellow())
+}
+
 fn missing_assets_prompt(total: i64, missing: i64) -> Answer {
     println!(
-        "{} {} of {} assets are not locally available and cannot be exported!",
+        "{} The library contains assets that are not locally available ({} of {})!",
         "Warning:".yellow(),
         missing,
         total,
     );
-    confirmation_prompt(
-        format!(
-            "Continue with {} available assets?",
-            total - missing
-        )
-    )
+    confirmation_prompt("Continue anyway?".to_string())
 }
 
 fn start_export_prompt(total: i64, out_dir: &Path) -> Answer {

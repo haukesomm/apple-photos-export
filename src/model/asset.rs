@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use chrono::NaiveDateTime;
 
-use crate::db::repo::exportable_assets::ExportableAssetInfo;
+use crate::db::repo::asset::ExportableAsset;
 use crate::foundation::cocoa;
 use crate::model::album::Album;
 use crate::model::FromDbModel;
@@ -27,8 +27,8 @@ impl ExportAsset {
     }
 }
 
-impl FromDbModel<ExportableAssetInfo> for ExportAsset {
-    fn from_db_model(model: ExportableAssetInfo) -> Result<Self, String> {
+impl FromDbModel<ExportableAsset> for ExportAsset {
+    fn from_db_model(model: ExportableAsset) -> Result<Self, String> {
         let (asset, additional_attribs, album) = model;
 
         Ok(ExportAsset {

@@ -5,7 +5,7 @@ use clap::{Args, Parser, Subcommand};
 use crate::album_list::print_album_tree;
 use crate::changelog::print_changelog;
 use crate::db::repo::album::AlbumRepository;
-use crate::db::repo::exportable_assets::{AlbumFilter, ExportableAssetsRepository};
+use crate::db::repo::asset::{AlbumFilter, AssetRepository, HiddenAssetFilter};
 use crate::export::copying::{AssetCopyStrategy, DefaultAssetCopyStrategy, DryRunAssetCopyStrategy};
 use crate::export::exporter::Exporter;
 use crate::export::structure::{AlbumOutputStrategy, HiddenAssetHandlingOutputStrategyDecorator, NestingOutputStrategyDecorator, OutputStrategy, PlainOutputStrategy, YearMonthOutputStrategy};
@@ -81,8 +81,12 @@ pub struct ExportArgs {
     exclude: Option<Vec<i32>>,
 
     /// Include hidden assets
-    #[arg(short = 'H', long = "include-hidden")]
+    #[arg(short = 'H', long = "include-hidden", group = "hidden")]
     include_hidden: bool,
+
+    /// Assets must be hidden
+    #[arg(long = "must-be-hidden", group = "hidden")]
+    must_be_hidden: bool,
 
     /// Restore original filenames
     #[arg(short = 'r', long = "restore-original-filenames")]
@@ -133,20 +137,24 @@ fn export_assets(args: ExportArgs) {
     }
 }
 
-fn setup_asset_repo(db_path: String, args: &ExportArgs) -> ExportableAssetsRepository {
-    ExportableAssetsRepository::new(
-        db_path,
-        args.include_hidden,
-        {
-            if let Some(ids) = args.include.clone() {
-                AlbumFilter::Include(ids)
-            } else if let Some(ids) = args.exclude.clone() {
-                AlbumFilter::Exclude(ids)
-            } else {
-                AlbumFilter::None
-            }
-        }
-    )
+fn setup_asset_repo(db_path: String, args: &ExportArgs) -> AssetRepository {
+    let hidden_asset_filter = if args.include_hidden {
+        HiddenAssetFilter::IncludeHidden
+    } else if args.must_be_hidden {
+        HiddenAssetFilter::OnlyHidden
+    } else {
+        HiddenAssetFilter::None
+    };
+
+    let album_filter = if let Some(ids) = args.include.clone() {
+        AlbumFilter::Include(ids)
+    } else if let Some(ids) = args.exclude.clone() {
+        AlbumFilter::Exclude(ids)
+    } else {
+        AlbumFilter::None
+    };
+
+    AssetRepository::new(db_path, hidden_asset_filter, album_filter)
 }
 
 fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputStrategy> {

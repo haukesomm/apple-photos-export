@@ -1,4 +1,5 @@
 use derive_new::new;
+use diesel::dsl;
 use diesel::dsl::count;
 use diesel::prelude::*;
 
@@ -9,67 +10,86 @@ use crate::db::model::internal_resource::InternalResource;
 use crate::db::schema::*;
 use crate::model::album::Kind;
 
-#[derive(Clone)]
+
+pub enum HiddenAssetFilter {
+    IncludeHidden,
+    OnlyHidden,
+    None
+}
+
+type AssetVisibilityFilter = dsl::And<
+    dsl::And<
+        dsl::And<
+            dsl::Eq<assets::columns::trashed, bool>,
+            dsl::EqAny<assets::columns::hidden, Vec<bool>>
+        >,
+        dsl::Eq<assets::columns::visibility_state, i32>
+    >,
+    dsl::Eq<assets::columns::duplicate_asset_visibility_state, i32>
+>;
+
+fn asset_visibility(hidden_asset_filter: &HiddenAssetFilter) -> AssetVisibilityFilter {
+    assets::trashed.eq(false)
+        .and(assets::hidden.eq_any(
+            match hidden_asset_filter {
+                HiddenAssetFilter::IncludeHidden => vec![true, false],
+                HiddenAssetFilter::OnlyHidden => vec![true],
+                HiddenAssetFilter::None => vec![false]
+            }
+        ))
+        .and(assets::visibility_state.eq(0))
+        .and(assets::duplicate_asset_visibility_state.eq(0))
+}
+
+
 pub enum AlbumFilter {
     Include(Vec<i32>),
     Exclude(Vec<i32>),
     None
 }
 
-// TODO: Rename
-pub type ExportableAssetInfo = (Asset, AssetAttributes, Option<Album>);
+
+pub type ExportableAsset = (Asset, AssetAttributes, Option<Album>);
 
 #[derive(new)]
-pub struct ExportableAssetsRepository {
+pub struct AssetRepository {
     db_path: String,
-    include_hidden: bool,
+    hidden_asset_filter: HiddenAssetFilter,
     album_filter: AlbumFilter
 }
 
-// TODO: USe result
-// TODO: Rename to AssetRepo
-impl ExportableAssetsRepository {
+impl AssetRepository {
 
-    pub fn get_total_count(&self) -> QueryResult<i64> {
+    pub fn get_visible_count(&self) -> QueryResult<i64> {
         let mut conn = establish_connection(&self.db_path);
         assets::table
+            .inner_join(asset_attributes::table)
             .inner_join(
-                asset_attributes::table.inner_join(
-                    internal_resources::table
-                        .on(internal_resources::fingerprint.eq(asset_attributes::master_fingerprint))
-                )
+                internal_resources::table
+                    .on(internal_resources::fingerprint.eq(asset_attributes::master_fingerprint))
             )
-            .filter(
-                assets::trashed.eq(false)
-                    .and(assets::hidden.eq_any([false, self.include_hidden]))
-                    .and(assets::visibility_state.eq(0))
-                    .and(assets::duplicate_asset_visibility_state.eq(0))
-            )
+            .filter(asset_visibility(&HiddenAssetFilter::IncludeHidden))
             .select(count(assets::id))
             .first(&mut conn)
     }
 
-    pub fn get_offloaded_count(&self) -> QueryResult<i64> {
+    pub fn get_visible_offloaded_count(&self) -> QueryResult<i64> {
         let mut conn = establish_connection(&self.db_path);
         assets::table
+            .inner_join(asset_attributes::table)
             .inner_join(
-                asset_attributes::table.inner_join(
-                    internal_resources::table
-                        .on(internal_resources::fingerprint.eq(asset_attributes::master_fingerprint))
-                )
+                internal_resources::table
+                    .on(internal_resources::fingerprint.eq(asset_attributes::master_fingerprint))
             )
             .filter(
-                assets::trashed.eq(false)
-                    .and(assets::hidden.eq_any([false, self.include_hidden]))
-                    .and(assets::visibility_state.eq(0))
-                    .and(assets::duplicate_asset_visibility_state.eq(0))
+                asset_visibility(&HiddenAssetFilter::IncludeHidden)
                     .and(internal_resources::local_availability.ne(1))
             )
             .select(count(assets::id))
             .first(&mut conn)
     }
 
-    pub fn get_exportable_assets(&self) -> QueryResult<Vec<ExportableAssetInfo>> {
+    pub fn get_exportable(&self) -> QueryResult<Vec<ExportableAsset>> {
         let mut conn = establish_connection(&self.db_path);
 
         let album_kinds = [Kind::Root, Kind::UserAlbum, Kind::UserFolder]
@@ -86,10 +106,7 @@ impl ExportableAssetsRepository {
                 album_assets::table.inner_join(albums::table)
             )
             .filter(
-                assets::trashed.eq(false)
-                    .and(assets::hidden.eq_any([false, self.include_hidden]))
-                    .and(assets::visibility_state.eq(0))
-                    .and(assets::duplicate_asset_visibility_state.eq(0))
+                asset_visibility(&self.hidden_asset_filter)
                     .and(internal_resources::local_availability.eq(1))
                     .and(
                         albums::kind.is_null()
@@ -105,7 +122,7 @@ impl ExportableAssetsRepository {
             ))
             .into_boxed();
 
-        query = match self.album_filter.clone() {
+        query = match &self.album_filter {
             AlbumFilter::Include(ids) => query.filter(
                 albums::id.eq_any(ids)
             ),
@@ -124,7 +141,7 @@ impl ExportableAssetsRepository {
                 .map(|(asset, attributes, _, _, albums)| {
                     (asset.clone(), attributes.clone(), albums.clone())
                 })
-                .collect::<Vec<ExportableAssetInfo>>()
+                .collect::<Vec<ExportableAsset>>()
         )
     }
 }

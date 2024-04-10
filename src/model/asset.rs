@@ -11,7 +11,7 @@ pub struct ExportAsset {
     pub id: i32,
     pub dir: String,
     pub filename: String,
-    pub date: NaiveDateTime,
+    pub datetime: NaiveDateTime,
     pub favorite: bool,
     pub original_filename: String,
     pub album: Option<Album>,
@@ -20,6 +20,7 @@ pub struct ExportAsset {
 impl ExportAsset {
     pub fn path(&self) -> PathBuf {
         PathBuf::new()
+            .join("originals")
             .join(&self.dir)
             .join(&self.filename)
     }
@@ -33,7 +34,7 @@ impl FromDbModel<ExportableAssetInfo> for ExportAsset {
             id: asset.id,
             dir: asset.dir,
             filename: asset.filename,
-            date: cocoa::parse_cocoa_timestamp(asset.date)?,
+            datetime: cocoa::parse_cocoa_timestamp(asset.date)?,
             favorite: asset.favorite,
             original_filename: additional_attribs.original_filename,
             album: match album {

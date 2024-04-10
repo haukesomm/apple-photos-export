@@ -5,8 +5,13 @@ use colored::Colorize;
 use derive_new::new;
 
 pub enum FinishState {
+
+    /// Represents a success state with the count of assets that have been exported.
     Success(usize),
-    Failure(Vec<String>),
+
+    /// Represents a failure state with the total count of assets that could not be exported and
+    /// a list of error messages.
+    Failure(i64, Vec<String>),
 }
 
 pub trait AssetCopyStrategy {
@@ -28,8 +33,8 @@ impl AssetCopyStrategy for DryRunAssetCopyStrategy {
     }
 
     fn on_finish(&self, _: FinishState) {
-        println!("{}", "Done. This was a dry run - no files have been exported and all errors have \
-        been ignored.".magenta())
+        println!("{}", "Done. This was a dry run - no files have been exported and all potential \
+        errors have been ignored.".magenta())
     }
 }
 
@@ -46,27 +51,32 @@ impl AssetCopyStrategy for DefaultAssetCopyStrategy {
         }
         copy(src, dest)
             .map(|_| ())
-            .map_err(|e| format!("Error copying file: {}", e))
+            .map_err(|e| e.to_string())
     }
 
     fn on_finish(&self, state: FinishState) {
         match state {
-            FinishState::Success(counts) => {
+            FinishState::Success(total_count) => {
                 println!(
                     "{} {} assets have been exported successfully!",
                     "Success:".green(),
-                    counts,
+                    total_count,
                 );
-            },
-            FinishState::Failure(paths) => {
-                println!(
-                    "{} {} assets could not be exported!",
-                    "Error:".red(),
-                    paths.len(),
-                );
-                for path in paths {
-                    println!("Error exporting asset: {}", path);
+            }
+            FinishState::Failure(total_count, messages) => {
+                for message in &messages {
+                    println!(
+                        "{} {}",
+                        "Error exporting asset:".red(),
+                        message
+                    );
                 }
+                println!(
+                    "{} {} of {} assets could not be exported (see messages above)!",
+                    "Error:".red(),
+                    messages.len(),
+                    total_count,
+                );
             }
         }
     }

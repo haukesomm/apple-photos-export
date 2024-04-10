@@ -17,12 +17,4 @@ impl PhotosLibrary {
             .to_string_lossy()
             .to_string()
     }
-
-    pub fn original_assets_path(&self) -> String {
-        PathBuf::new()
-            .join(&self.path)
-            .join("originals")
-            .to_string_lossy()
-            .to_string()
-    }
 }

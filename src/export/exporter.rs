@@ -54,7 +54,10 @@ impl Exporter {
             if errors.is_empty() {
                 FinishState::Success(exported.len())
             } else {
-                FinishState::Failure(errors.into_iter().map(Result::unwrap_err).collect())
+                FinishState::Failure(
+                    export_assets_count,
+                    errors.into_iter().map(Result::unwrap_err).collect()
+                )
             }
         );
 
@@ -63,7 +66,7 @@ impl Exporter {
 
     fn export_single_asset(&self, index: usize, total: i64, asset: &ExportAsset) -> Result<(), String> {
         let source_path = self.library_path.join(asset.path());
-        let output_path = self.get_output_path(asset);
+        let output_path = self.get_absolute_output_path(asset)?;
 
         println!(
             "{} Exporting '{}' to '{}'",
@@ -72,7 +75,9 @@ impl Exporter {
             output_path.to_str().unwrap().italic()
         );
 
-        self.copy_strategy.copy_asset(source_path.as_path(), output_path.as_path())
+        self.copy_strategy
+            .copy_asset(source_path.as_path(), output_path.as_path())
+            .map_err(|e| format!("{}: {}", source_path.to_string_lossy(), e))
     }
 
     fn get_total_count(&self) -> Result<i64, String> {
@@ -99,16 +104,17 @@ impl Exporter {
             .collect::<Result<Vec<ExportAsset>, String>>()
     }
 
-    fn get_output_path(&self, asset: &ExportAsset) -> PathBuf {
+    fn get_absolute_output_path(&self, asset: &ExportAsset) -> Result<PathBuf, String> {
         let filename = if self.use_original_filenames {
             asset.original_filename.clone()
         } else {
             asset.filename.clone()
         };
 
-        let relative_output_path = self.output_strategy.get_relative_output_dir(asset);
+        let relative_path = self.output_strategy.get_relative_output_dir(asset)?;
+        let absolute_path = self.output_path.join(relative_path).join(filename);
 
-        self.output_path.join(relative_output_path).join(filename)
+        Ok(absolute_path)
     }
 }
 

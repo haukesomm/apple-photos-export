@@ -110,7 +110,8 @@ fn main() {
 
 
 fn export_assets(args: ExportArgs) {
-    let photos_library = PhotosLibrary::new(args.library_path.clone());
+    let library_path = args.library_path.clone();
+    let photos_library = PhotosLibrary::new(library_path.clone());
 
     let asset_repo = setup_asset_repo(photos_library.db_path(), &args);
     let output_strategy = setup_output_strategy(photos_library.db_path(), &args);
@@ -121,7 +122,7 @@ fn export_assets(args: ExportArgs) {
         output_strategy,
         copy_strategy,
         args.restore_original_filenames,
-        PathBuf::from(photos_library.original_assets_path()),
+        PathBuf::from(library_path),
         PathBuf::from(args.output_dir)
     );
 

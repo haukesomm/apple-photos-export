@@ -38,17 +38,14 @@ pub struct Album {
 
 impl Album {
 
-    pub fn get_relative_path(&self, albums: &HashMap<i32, Album>) -> Result<PathBuf, String> {
+    pub fn get_path(&self, albums: &HashMap<i32, Album>) -> Result<PathBuf, String> {
         self.get_path_recursively(self.id, albums)
     }
 
     fn get_path_recursively(&self, album_id: i32, albums_by_id: &HashMap<i32, Album>) -> Result<PathBuf, String> {
-        let album_option = albums_by_id.get(&album_id);
-        if album_option.is_none() {
-            return Err(format!("Album with ID {} not found", album_id));
-        }
-
-        let album = album_option.unwrap();
+        let album = albums_by_id
+            .get(&album_id)
+            .ok_or(format!("Album with ID {} not found", album_id))?;
 
         match album.parent_id {
             None => {

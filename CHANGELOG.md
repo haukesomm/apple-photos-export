@@ -2,7 +2,7 @@
 
 The following is a list of changes made to the project in reverse chronological order.
 
-## `0.2.0-snapshot`
+## `0.1.0`
 
 - Use [diesel](https://diesel.rs) ORM for database access.
 - Proper handling of assets that have been offloaded to iCloud
@@ -16,6 +16,6 @@ The following is a list of changes made to the project in reverse chronological 
   - By default, hidden assets are not included.
 - Loads of refactoring and code cleanup.
 
-## `0.1.0`
+## `0.0.1`
 
 Initial release.

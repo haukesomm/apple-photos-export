@@ -5,7 +5,7 @@ use clap::{Args, Parser, Subcommand};
 use crate::album_list::print_album_tree;
 use crate::changelog::print_changelog;
 use crate::db::repo::album::AlbumRepository;
-use crate::db::repo::asset::{AlbumFilter, AssetRepository, HiddenAssetFilter};
+use crate::db::repo::asset::{AlbumFilter, AssetRepository, HiddenAssets};
 use crate::export::copying::{AssetCopyStrategy, DefaultAssetCopyStrategy, DryRunAssetCopyStrategy};
 use crate::export::exporter::Exporter;
 use crate::export::structure::{AlbumOutputStrategy, HiddenAssetHandlingOutputStrategyDecorator, NestingOutputStrategyDecorator, OutputStrategy, PlainOutputStrategy, YearMonthOutputStrategy};
@@ -139,11 +139,11 @@ fn export_assets(args: ExportArgs) {
 
 fn setup_asset_repo(db_path: String, args: &ExportArgs) -> AssetRepository {
     let hidden_asset_filter = if args.include_hidden {
-        HiddenAssetFilter::IncludeHidden
+        HiddenAssets::Include
     } else if args.must_be_hidden {
-        HiddenAssetFilter::OnlyHidden
+        HiddenAssets::Require
     } else {
-        HiddenAssetFilter::None
+        HiddenAssets::Exclude
     };
 
     let album_filter = if let Some(ids) = args.include.clone() {

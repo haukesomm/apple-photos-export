@@ -2,15 +2,23 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use chrono::NaiveDateTime;
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 
 use crate::foundation::cocoa;
 use crate::model::FromDbModel;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, EnumIter)]
 pub enum Kind {
     Root = 3999,
     UserFolder= 4000,
     UserAlbum = 2,
+}
+
+impl Kind {
+    pub fn int_values() -> Vec<i32> {
+        Kind::iter().map(|k| k as i32).collect()
+    }
 }
 
 impl TryFrom<i32> for Kind {

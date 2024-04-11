@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use colored::Colorize;
 use derive_new::new;
 
-use crate::db::repo::asset::AssetRepository;
+use crate::db::repo::asset::{AssetRepository, LocalAvailability};
 use crate::export::copying::{AssetCopyStrategy, FinishState};
 use crate::export::structure::OutputStrategy;
 use crate::model::asset::ExportAsset;
@@ -87,13 +87,13 @@ impl Exporter {
 
     fn get_visible_count(&self) -> Result<i64, String> {
         self.repo
-            .get_visible_count()
+            .get_visible_count(LocalAvailability::Any)
             .map_err(|e| e.to_string())
     }
 
     fn get_visible_offloaded_count(&self) -> Result<i64, String> {
         self.repo
-            .get_visible_offloaded_count()
+            .get_visible_count(LocalAvailability::Offloaded)
             .map_err(|e| e.to_string())
     }
 

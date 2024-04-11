@@ -7,14 +7,15 @@ use crate::db::connection::establish_connection;
 use crate::db::model::album::Album;
 use crate::db::model::asset::{AlbumAsset, Asset, AssetAttributes};
 use crate::db::model::internal_resource::InternalResource;
+use crate::db::repo::asset::LocalAvailability::Offloaded;
 use crate::db::schema::*;
 use crate::model::album::Kind;
 
 
-pub enum HiddenAssetFilter {
-    IncludeHidden,
-    OnlyHidden,
-    None
+pub enum HiddenAssets {
+    Include,
+    Require,
+    Exclude
 }
 
 type AssetVisibilityFilter = dsl::And<
@@ -28,17 +29,23 @@ type AssetVisibilityFilter = dsl::And<
     dsl::Eq<assets::columns::duplicate_asset_visibility_state, i32>
 >;
 
-fn asset_visibility(hidden_asset_filter: &HiddenAssetFilter) -> AssetVisibilityFilter {
+fn filter_visible(hidden_assets: &HiddenAssets) -> AssetVisibilityFilter {
     assets::trashed.eq(false)
         .and(assets::hidden.eq_any(
-            match hidden_asset_filter {
-                HiddenAssetFilter::IncludeHidden => vec![true, false],
-                HiddenAssetFilter::OnlyHidden => vec![true],
-                HiddenAssetFilter::None => vec![false]
+            match hidden_assets {
+                HiddenAssets::Include => vec![true, false],
+                HiddenAssets::Require => vec![true],
+                HiddenAssets::Exclude => vec![false]
             }
         ))
         .and(assets::visibility_state.eq(0))
         .and(assets::duplicate_asset_visibility_state.eq(0))
+}
+
+
+pub enum LocalAvailability {
+    Any,
+    Offloaded
 }
 
 
@@ -54,46 +61,34 @@ pub type ExportableAsset = (Asset, AssetAttributes, Option<Album>);
 #[derive(new)]
 pub struct AssetRepository {
     db_path: String,
-    hidden_asset_filter: HiddenAssetFilter,
+    hidden_assets: HiddenAssets,
     album_filter: AlbumFilter
 }
 
 impl AssetRepository {
 
-    pub fn get_visible_count(&self) -> QueryResult<i64> {
+    pub fn get_visible_count(&self, availability: LocalAvailability) -> QueryResult<i64> {
         let mut conn = establish_connection(&self.db_path);
-        assets::table
+        let mut boxed_select = assets::table
             .inner_join(asset_attributes::table)
             .inner_join(
                 internal_resources::table
                     .on(internal_resources::fingerprint.eq(asset_attributes::master_fingerprint))
             )
-            .filter(asset_visibility(&HiddenAssetFilter::IncludeHidden))
+            .filter(filter_visible(&HiddenAssets::Include))
             .select(count(assets::id))
-            .first(&mut conn)
-    }
+            .into_boxed();
 
-    pub fn get_visible_offloaded_count(&self) -> QueryResult<i64> {
-        let mut conn = establish_connection(&self.db_path);
-        assets::table
-            .inner_join(asset_attributes::table)
-            .inner_join(
-                internal_resources::table
-                    .on(internal_resources::fingerprint.eq(asset_attributes::master_fingerprint))
-            )
-            .filter(
-                asset_visibility(&HiddenAssetFilter::IncludeHidden)
-                    .and(internal_resources::local_availability.ne(1))
-            )
-            .select(count(assets::id))
-            .first(&mut conn)
+        if let Offloaded = availability {
+            boxed_select = boxed_select
+                .filter(internal_resources::local_availability.ne(1));
+        }
+
+        Ok(boxed_select.first(&mut conn)?)
     }
 
     pub fn get_exportable(&self) -> QueryResult<Vec<ExportableAsset>> {
         let mut conn = establish_connection(&self.db_path);
-
-        let album_kinds = [Kind::Root, Kind::UserAlbum, Kind::UserFolder]
-            .map(|k| k as i32);
 
         let mut query = assets::table
             .inner_join(
@@ -106,13 +101,13 @@ impl AssetRepository {
                 album_assets::table.inner_join(albums::table)
             )
             .filter(
-                asset_visibility(&self.hidden_asset_filter)
+                filter_visible(&self.hidden_assets)
                     .and(internal_resources::local_availability.eq(1))
                     .and(
                         albums::kind.is_null()
                             .or(
                                 albums::trashed.eq(false)
-                                    .and(albums::kind.eq_any(album_kinds))
+                                    .and(albums::kind.eq_any(Kind::int_values()))
                             )
                     )
             )

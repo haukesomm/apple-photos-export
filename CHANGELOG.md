@@ -2,6 +2,8 @@
 
 The following is a list of changes made to the project in reverse chronological order.
 
+## `0.2.0-snapshot`
+
 ## `0.1.0`
 
 - Use [diesel](https://diesel.rs) ORM for database access.

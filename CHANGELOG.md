@@ -4,6 +4,8 @@ The following is a list of changes made to the project in reverse chronological 
 
 ## `0.2.0-snapshot`
 
+- Internal refactoring of the export command's logic
+
 ## `0.1.0`
 
 - Use [diesel](https://diesel.rs) ORM for database access.

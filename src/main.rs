@@ -6,7 +6,7 @@ use crate::album_list::print_album_tree;
 use crate::changelog::print_changelog;
 use crate::db::repo::album::AlbumRepository;
 use crate::db::repo::asset::{AlbumFilter, AssetRepository, HiddenAssets};
-use crate::export::copying::{AssetCopyStrategy, DefaultAssetCopyStrategy, DryRunAssetCopyStrategy};
+use crate::export::copying::{AssetCopyStrategy, CopyOperationFactory, DefaultAssetCopyStrategy, DryRunAssetCopyStrategy, FilenameRestoringCopyOperationFactoryDecorator, OriginalsCopyOperationFactory, OutputStructureCopyOperationFactoryDecorator};
 use crate::export::exporter::Exporter;
 use crate::export::structure::{AlbumOutputStrategy, HiddenAssetHandlingOutputStrategyDecorator, NestingOutputStrategyDecorator, OutputStrategy, PlainOutputStrategy, YearMonthOutputStrategy};
 use crate::library::PhotosLibrary;
@@ -118,16 +118,15 @@ fn export_assets(args: ExportArgs) {
     let photos_library = PhotosLibrary::new(library_path.clone());
 
     let asset_repo = setup_asset_repo(photos_library.db_path(), &args);
-    let output_strategy = setup_output_strategy(photos_library.db_path(), &args);
+    let copy_operation_factory = setup_copy_operation_factory(photos_library.db_path(), &args);
     let copy_strategy = setup_copy_strategy(args.dry_run);
 
     let exporter = Exporter::new(
         asset_repo,
-        output_strategy,
-        copy_strategy,
-        args.restore_original_filenames,
         PathBuf::from(library_path),
-        PathBuf::from(args.output_dir)
+        PathBuf::from(args.output_dir),
+        copy_operation_factory,
+        copy_strategy,
     );
 
     let result = exporter.export();
@@ -155,6 +154,23 @@ fn setup_asset_repo(db_path: String, args: &ExportArgs) -> AssetRepository {
     };
 
     AssetRepository::new(db_path, hidden_asset_filter, album_filter)
+}
+
+fn setup_copy_operation_factory(db_path: String, args: &ExportArgs) -> Box<dyn CopyOperationFactory> {
+    let mut factory: Box<dyn CopyOperationFactory> = Box::new(
+        OutputStructureCopyOperationFactoryDecorator::new(
+            Box::new(OriginalsCopyOperationFactory::new()),
+            setup_output_strategy(db_path, args)
+        )
+    );
+
+    if args.restore_original_filenames {
+        factory = Box::new(
+            FilenameRestoringCopyOperationFactoryDecorator::new(factory)
+        )
+    };
+
+    factory
 }
 
 fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputStrategy> {

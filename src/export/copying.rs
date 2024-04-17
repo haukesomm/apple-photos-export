@@ -1,8 +1,95 @@
 use std::fs::{copy, create_dir_all};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use colored::Colorize;
 use derive_new::new;
+use crate::export::structure::OutputStrategy;
+use crate::model::asset::ExportAsset;
+
+
+#[derive(new)]
+pub struct CopyOperation {
+    pub source_path: PathBuf,
+    pub output_filename: String,
+    pub output_filename_suffix: Option<String>,
+    pub output_folder: Option<PathBuf>,
+}
+
+impl CopyOperation {
+    pub fn get_output_path(&self) -> PathBuf {
+        PathBuf::new()
+            .join(self.output_folder.clone().unwrap_or(PathBuf::new()))
+            .join(
+                format!(
+                    "{}{}",
+                    self.output_filename,
+                    self.output_filename_suffix.clone().unwrap_or("".to_string())
+                )
+            )
+    }
+}
+
+
+pub trait CopyOperationFactory {
+    fn build(&self, asset: &ExportAsset) -> Vec<CopyOperation>;
+}
+
+#[derive(new)]
+pub struct OriginalsCopyOperationFactory;
+impl CopyOperationFactory for OriginalsCopyOperationFactory {
+    fn build(&self, asset: &ExportAsset) -> Vec<CopyOperation> {
+        vec![CopyOperation::new(
+            asset.path(),
+            asset.filename.clone(),
+            None,
+            None,
+        )]
+    }
+}
+
+#[derive(new)]
+pub struct FilenameRestoringCopyOperationFactoryDecorator {
+    inner: Box<dyn CopyOperationFactory>,
+}
+impl CopyOperationFactory for FilenameRestoringCopyOperationFactoryDecorator {
+    fn build(&self, asset: &ExportAsset) -> Vec<CopyOperation> {
+        self.inner
+            .build(asset)
+            .into_iter()
+            .map(|op| {
+                CopyOperation::new(
+                    op.source_path,
+                    asset.original_filename.clone(),
+                    op.output_filename_suffix,
+                    op.output_folder,
+                )
+            })
+            .collect()
+    }
+}
+
+#[derive(new)]
+pub struct OutputStructureCopyOperationFactoryDecorator {
+    inner: Box<dyn CopyOperationFactory>,
+    strategy: Box<dyn OutputStrategy>,
+}
+impl CopyOperationFactory for OutputStructureCopyOperationFactoryDecorator {
+    fn build(&self, asset: &ExportAsset) -> Vec<CopyOperation> {
+        self.inner
+            .build(asset)
+            .into_iter()
+            .map(|op| {
+                CopyOperation::new(
+                    op.source_path,
+                    op.output_filename,
+                    op.output_filename_suffix,
+                    self.strategy.get_relative_output_dir(asset).ok(),
+                )
+            })
+            .collect()
+    }
+}
+
 
 pub enum FinishState {
 

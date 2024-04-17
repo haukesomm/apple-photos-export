@@ -4,8 +4,7 @@ use colored::Colorize;
 use derive_new::new;
 
 use crate::db::repo::asset::{AssetRepository, LocalAvailability};
-use crate::export::copying::{AssetCopyStrategy, FinishState};
-use crate::export::structure::OutputStrategy;
+use crate::export::copying::{AssetCopyStrategy, CopyOperation, CopyOperationFactory, FinishState};
 use crate::model::asset::ExportAsset;
 use crate::model::FromDbModel;
 use crate::util::confirmation::{Answer, confirmation_prompt};
@@ -13,11 +12,10 @@ use crate::util::confirmation::{Answer, confirmation_prompt};
 #[derive(new)]
 pub struct Exporter {
     repo: AssetRepository,
-    output_strategy: Box<dyn OutputStrategy>,
-    copy_strategy: Box<dyn AssetCopyStrategy>,
-    use_original_filenames: bool,
     library_path: PathBuf,
-    output_path: PathBuf
+    output_path: PathBuf,
+    copy_operation_factory: Box<dyn CopyOperationFactory>,
+    copy_strategy: Box<dyn AssetCopyStrategy>,
 }
 
 impl Exporter {
@@ -34,7 +32,13 @@ impl Exporter {
             }
         }
 
-        let export_assets: Vec<ExportAsset> = self.get_exportable_assets()?;
+        let export_assets: Vec<CopyOperation> = self
+            .get_exportable_assets()?
+            .iter()
+            .map(|a| self.copy_operation_factory.build(a))
+            .flatten()
+            .collect();
+
         let export_assets_count = export_assets.len() as i64;
 
         if export_assets_count == 0 {
@@ -69,15 +73,15 @@ impl Exporter {
         Ok(())
     }
 
-    fn export_single_asset(&self, index: usize, total: i64, asset: &ExportAsset) -> Result<(), String> {
-        let source_path = self.library_path.join(asset.path());
-        let output_path = self.get_absolute_output_path(asset)?;
+    fn export_single_asset(&self, index: usize, total: i64, copy_operation: &CopyOperation) -> Result<(), String> {
+        let source_path = self.library_path.join(&copy_operation.source_path);
+        let output_path = self.output_path.join(&copy_operation.get_output_path());
 
         println!(
             "{} Exporting '{}' to '{}'",
             format!("({}/{})", index + 1, total).yellow(),
-            asset.filename.italic(),
-            output_path.to_str().unwrap().italic()
+            source_path.to_string_lossy().dimmed(),
+            output_path.to_str().unwrap().dimmed()
         );
 
         self.copy_strategy
@@ -107,19 +111,6 @@ impl Exporter {
                     .map_err(|e| e.to_string())
             })
             .collect::<Result<Vec<ExportAsset>, String>>()
-    }
-
-    fn get_absolute_output_path(&self, asset: &ExportAsset) -> Result<PathBuf, String> {
-        let filename = if self.use_original_filenames {
-            asset.original_filename.clone()
-        } else {
-            asset.filename.clone()
-        };
-
-        let relative_path = self.output_strategy.get_relative_output_dir(asset)?;
-        let absolute_path = self.output_path.join(relative_path).join(filename);
-
-        Ok(absolute_path)
     }
 }
 

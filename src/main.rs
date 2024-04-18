@@ -6,7 +6,7 @@ use crate::album_list::print_album_tree;
 use crate::changelog::print_changelog;
 use crate::db::repo::album::AlbumRepository;
 use crate::db::repo::asset::{AlbumFilter, AssetRepository, HiddenAssets};
-use crate::export::copying::{AssetCopyStrategy, CopyOperationFactory, DefaultAssetCopyStrategy, DryRunAssetCopyStrategy, FilenameRestoringCopyOperationFactoryDecorator, OriginalsCopyOperationFactory, OutputStructureCopyOperationFactoryDecorator};
+use crate::export::copying::{AssetCopyStrategy, CombiningCopyOperationFactory, CopyOperationFactory, DefaultAssetCopyStrategy, DerivatesCopyOperationFactory, DryRunAssetCopyStrategy, FilenameRestoringCopyOperationFactoryDecorator, OriginalsCopyOperationFactory, OutputStructureCopyOperationFactoryDecorator, SuffixSettingCopyOperationFactoryDecorator};
 use crate::export::exporter::Exporter;
 use crate::export::structure::{AlbumOutputStrategy, HiddenAssetHandlingOutputStrategyDecorator, NestingOutputStrategyDecorator, OutputStrategy, PlainOutputStrategy, YearMonthOutputStrategy};
 use crate::library::PhotosLibrary;
@@ -77,7 +77,7 @@ pub struct ExportArgs {
     include: Option<Vec<i32>>,
 
     /// Exclude assets in the albums matching the given ids
-    #[arg(short = 'e', long = "exclude-albums", group = "ids", num_args = 1.., value_delimiter = ' ')]
+    #[arg(short = 'x', long = "exclude-albums", group = "ids", num_args = 1.., value_delimiter = ' ')]
     exclude: Option<Vec<i32>>,
 
     /// Include hidden assets
@@ -95,6 +95,14 @@ pub struct ExportArgs {
     /// Flatten album structure
     #[arg(short = 'f', long = "flatten-albums")]
     flatten_albums: bool,
+
+    /// Include edited versions of the assets if available
+    #[arg(short = 'e', long = "include-edited", group = "edited")]
+    include_edited: bool,
+
+    /// Always export the edited version of an asset if available
+    #[arg(short = 'E', long = "only-edited", group = "edited")]
+    only_edited: bool,
 
     /// Dry run
     #[arg(short = 'd', long = "dry-run")]
@@ -157,20 +165,38 @@ fn setup_asset_repo(db_path: String, args: &ExportArgs) -> AssetRepository {
 }
 
 fn setup_copy_operation_factory(db_path: String, args: &ExportArgs) -> Box<dyn CopyOperationFactory> {
-    let mut factory: Box<dyn CopyOperationFactory> = Box::new(
+    let factory: Box<dyn CopyOperationFactory> = Box::new(
         OutputStructureCopyOperationFactoryDecorator::new(
-            Box::new(OriginalsCopyOperationFactory::new()),
+            if args.include_edited {
+                Box::new(
+                    CombiningCopyOperationFactory::new(
+                        vec![
+                            Box::new(
+                                SuffixSettingCopyOperationFactoryDecorator::new(
+                                    Box::new(OriginalsCopyOperationFactory::new()),
+                                    "_original".to_string()
+                                )
+                            ),
+                            Box::new(DerivatesCopyOperationFactory::new())
+                        ]
+                    )
+                )
+            } else if args.only_edited {
+                Box::new(DerivatesCopyOperationFactory::new())
+            } else {
+                Box::new(OriginalsCopyOperationFactory::new())
+            },
             setup_output_strategy(db_path, args)
         )
     );
 
     if args.restore_original_filenames {
-        factory = Box::new(
+        Box::new(
             FilenameRestoringCopyOperationFactoryDecorator::new(factory)
         )
-    };
-
-    factory
+    } else {
+        factory
+    }
 }
 
 fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputStrategy> {

@@ -32,12 +32,14 @@ impl Exporter {
             }
         }
 
-        let export_assets: Vec<CopyOperation> = self
+        let export_assets = self
             .get_exportable_assets()?
             .iter()
             .map(|a| self.copy_operation_factory.build(a))
+            .collect::<Result<Vec<Vec<_>>, _>>()?
+            .into_iter()
             .flatten()
-            .collect();
+            .collect::<Vec<CopyOperation>>();
 
         let export_assets_count = export_assets.len() as i64;
 

@@ -6,8 +6,10 @@ use crate::db::model::album::Album;
 #[diesel(table_name = crate::db::schema::assets)]
 pub struct Asset  {
     pub id: i32,
+    pub uuid: String,
     pub dir: String,
     pub filename: String,
+    pub uniform_type_identifier: String,
     pub date: f32,
     pub hidden: bool,
     pub favorite: bool,
@@ -15,6 +17,7 @@ pub struct Asset  {
     pub visibility_state: i32,
     pub cloud_local_state: bool,
     pub duplicate_asset_visibility_state: i32,
+    pub has_adjustments: bool,
 }
 
 #[derive(Clone, Queryable, Selectable, Identifiable, Associations)]

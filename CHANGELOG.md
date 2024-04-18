@@ -4,6 +4,10 @@ The following is a list of changes made to the project in reverse chronological 
 
 ## `0.2.0-snapshot`
 
+- Rename `-e`/`--exclude-albums` flag to `-x`/`--exclude-albums`.
+- Add new export flags:
+    - `-e`/`--include-edited` to include edited asset versions in the export if available.
+    - `-E`/`--only-edited` to always export the edited version of an asset if available.
 - Internal refactoring of the export command's logic
 
 ## `0.1.0`

@@ -31,11 +31,17 @@ diesel::table! {
         #[sql_name = "Z_PK"]
         id -> Integer,
 
+        #[sql_name = "ZUUID"]
+        uuid -> VarChar,
+
         #[sql_name = "ZDIRECTORY"]
         dir -> VarChar,
 
         #[sql_name = "ZFILENAME"]
         filename -> VarChar,
+
+        #[sql_name = "ZUNIFORMTYPEIDENTIFIER"]
+        uniform_type_identifier -> VarChar,
 
         #[sql_name = "ZDATECREATED"]
         date -> Float,
@@ -57,6 +63,9 @@ diesel::table! {
 
         #[sql_name = "ZDUPLICATEASSETVISIBILITYSTATE"]
         duplicate_asset_visibility_state -> Integer,
+
+        #[sql_name = "ZHASADJUSTMENTS"]
+        has_adjustments -> Bool,
     }
 }
 
@@ -88,6 +97,9 @@ diesel::table! {
 
         #[sql_name = "ZLOCALAVAILABILITY"]
         local_availability -> Integer,
+
+        #[sql_name = "ZCOMPACTUTI"]
+        compact_uti -> Integer,
     }
 }
 

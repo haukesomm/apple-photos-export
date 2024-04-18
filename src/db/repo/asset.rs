@@ -56,7 +56,7 @@ pub enum AlbumFilter {
 }
 
 
-pub type ExportableAsset = (Asset, AssetAttributes, Option<Album>);
+pub type ExportableAsset = (Asset, AssetAttributes, InternalResource, Option<Album>);
 
 #[derive(new)]
 pub struct AssetRepository {
@@ -133,8 +133,8 @@ impl AssetRepository {
         Ok(
             result
                 .iter()
-                .map(|(asset, attributes, _, _, albums)| {
-                    (asset.clone(), attributes.clone(), albums.clone())
+                .map(|(asset, attributes, internal_resources, _, albums)| {
+                    (asset.clone(), attributes.clone(), internal_resources.clone(), albums.clone())
                 })
                 .collect::<Vec<ExportableAsset>>()
         )

@@ -6,7 +6,7 @@ use crate::album_list::print_album_tree;
 use crate::changelog::print_changelog;
 use crate::db::repo::album::AlbumRepository;
 use crate::db::repo::asset::{AlbumFilter, AssetRepository, HiddenAssets};
-use crate::export::copying::{AssetCopyStrategy, CombiningCopyOperationFactory, CopyOperationFactory, DefaultAssetCopyStrategy, DerivatesCopyOperationFactory, DryRunAssetCopyStrategy, FilenameRestoringCopyOperationFactoryDecorator, OriginalsCopyOperationFactory, OutputStructureCopyOperationFactoryDecorator, SuffixSettingCopyOperationFactoryDecorator};
+use crate::export::copying::{AbsolutePathBuildingCopyOperationFactoryDecorator, AssetCopyStrategy, CombiningCopyOperationFactory, CopyOperationFactory, DefaultAssetCopyStrategy, DerivatesCopyOperationFactory, DryRunAssetCopyStrategy, FilenameRestoringCopyOperationFactoryDecorator, OriginalsCopyOperationFactory, OutputStructureCopyOperationFactoryDecorator, SuffixSettingCopyOperationFactoryDecorator};
 use crate::export::exporter::Exporter;
 use crate::export::structure::{AlbumOutputStrategy, HiddenAssetHandlingOutputStrategyDecorator, NestingOutputStrategyDecorator, OutputStrategy, PlainOutputStrategy, YearMonthOutputStrategy};
 use crate::library::PhotosLibrary;
@@ -131,8 +131,6 @@ fn export_assets(args: ExportArgs) {
 
     let exporter = Exporter::new(
         asset_repo,
-        PathBuf::from(library_path),
-        PathBuf::from(args.output_dir),
         copy_operation_factory,
         copy_strategy,
     );
@@ -166,27 +164,33 @@ fn setup_asset_repo(db_path: String, args: &ExportArgs) -> AssetRepository {
 
 fn setup_copy_operation_factory(db_path: String, args: &ExportArgs) -> Box<dyn CopyOperationFactory> {
     let factory: Box<dyn CopyOperationFactory> = Box::new(
-        OutputStructureCopyOperationFactoryDecorator::new(
-            if args.include_edited {
-                Box::new(
-                    CombiningCopyOperationFactory::new(
-                        vec![
-                            Box::new(
-                                SuffixSettingCopyOperationFactoryDecorator::new(
-                                    Box::new(OriginalsCopyOperationFactory::new()),
-                                    "_original".to_string()
-                                )
-                            ),
-                            Box::new(DerivatesCopyOperationFactory::new())
-                        ]
-                    )
+        AbsolutePathBuildingCopyOperationFactoryDecorator::new(
+            PathBuf::from(&args.library_path),
+            PathBuf::from(&args.output_dir),
+            Box::new(
+                OutputStructureCopyOperationFactoryDecorator::new(
+                    if args.include_edited {
+                        Box::new(
+                            CombiningCopyOperationFactory::new(
+                                vec![
+                                    Box::new(
+                                        SuffixSettingCopyOperationFactoryDecorator::new(
+                                            Box::new(OriginalsCopyOperationFactory::new()),
+                                            "_original".to_string()
+                                        )
+                                    ),
+                                    Box::new(DerivatesCopyOperationFactory::new())
+                                ]
+                            )
+                        )
+                    } else if args.only_edited {
+                        Box::new(DerivatesCopyOperationFactory::new())
+                    } else {
+                        Box::new(OriginalsCopyOperationFactory::new())
+                    },
+                    setup_output_strategy(db_path, args)
                 )
-            } else if args.only_edited {
-                Box::new(DerivatesCopyOperationFactory::new())
-            } else {
-                Box::new(OriginalsCopyOperationFactory::new())
-            },
-            setup_output_strategy(db_path, args)
+            )
         )
     );
 

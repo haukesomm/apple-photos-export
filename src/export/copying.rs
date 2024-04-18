@@ -1,17 +1,17 @@
 use std::fs::{copy, create_dir_all};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use colored::Colorize;
 use derive_new::new;
+
 use crate::export::structure::OutputStrategy;
 use crate::model::asset::ExportAsset;
 use crate::model::uti::Uti;
 
-
 #[derive(new)]
 pub struct CopyOperation {
     pub source_path: PathBuf,
-    pub file_type: &'static Uti,
+    pub uti: &'static Uti,
     pub output_filename: String,
     pub output_filename_suffix: Option<String>,
     pub output_folder: Option<PathBuf>,
@@ -26,7 +26,7 @@ impl CopyOperation {
                     "{}{}.{}",
                     self.output_filename,
                     self.output_filename_suffix.clone().unwrap_or("".to_string()),
-                    self.file_type.extension
+                    self.uti.extension
                 )
             )
     }
@@ -142,6 +142,33 @@ impl CopyOperationFactory for OutputStructureCopyOperationFactoryDecorator {
 }
 
 #[derive(new)]
+pub struct AbsolutePathBuildingCopyOperationFactoryDecorator {
+    library_path: PathBuf,
+    output_folder: PathBuf,
+    inner: Box<dyn CopyOperationFactory>,
+}
+impl CopyOperationFactory for AbsolutePathBuildingCopyOperationFactoryDecorator {
+    fn build(&self, asset: &ExportAsset) -> Result<Vec<CopyOperation>, String> {
+        let operations = self.inner
+            .build(asset)?
+            .into_iter()
+            .map(|op| {
+                CopyOperation {
+                    source_path: self.library_path.join(&op.source_path),
+                    output_folder: Some(
+                        self.output_folder.clone()
+                            .join(&op.output_folder.unwrap_or(PathBuf::new()))
+                    ),
+                    ..op
+                }
+            })
+            .collect();
+
+        Ok(operations)
+    }
+}
+
+#[derive(new)]
 pub struct SuffixSettingCopyOperationFactoryDecorator {
     inner: Box<dyn CopyOperationFactory>,
     suffix: String,
@@ -164,66 +191,62 @@ impl CopyOperationFactory for SuffixSettingCopyOperationFactoryDecorator {
 }
 
 
-pub enum FinishState {
+pub enum CopyStrategyResult {
 
-    /// Represents a success state with the count of assets that have been exported.
-    Success(usize),
+    /// Represents a success state with all assets having been exported.
+    Success(),
 
-    /// Represents a failure state with the total count of assets that could not be exported and
-    /// a list of error messages.
-    Failure(i64, Vec<String>),
+    /// Represents a failure state with a list of error messages.
+    Failure(Vec<String>),
 }
 
 pub trait AssetCopyStrategy {
 
-    fn copy_asset(&self, src: &Path, dest: &Path) -> Result<(), String>;
+    fn copy_asset(&self, copy_operation: &CopyOperation) -> Result<(), String>;
 
-    fn on_finish(&self, state: FinishState);
+    fn on_finish(&self, total_operations: i64, result: CopyStrategyResult);
 }
-
 
 #[derive(new)]
 pub struct DryRunAssetCopyStrategy;
-
 impl AssetCopyStrategy for DryRunAssetCopyStrategy {
 
-    fn copy_asset(&self, _: &Path, _: &Path) -> Result<(), String> {
+    fn copy_asset(&self, _: &CopyOperation) -> Result<(), String> {
         // do nothing - dry run
         Ok(())
     }
 
-    fn on_finish(&self, _: FinishState) {
+    fn on_finish(&self, _: i64, _: CopyStrategyResult) {
         println!("{}", "Done. This was a dry run - no files have been exported and all potential \
         errors have been ignored.".magenta())
     }
 }
 
-
 #[derive(new)]
 pub struct DefaultAssetCopyStrategy;
-
 impl AssetCopyStrategy for DefaultAssetCopyStrategy {
 
-    fn copy_asset(&self, src: &Path, dest: &Path) -> Result<(), String> {
+    fn copy_asset(&self, copy_operation: &CopyOperation) -> Result<(), String> {
+        let dest = copy_operation.get_output_path();
+
         if let Some(parent) = dest.parent() {
             create_dir_all(parent)
                 .map_err(|e| format!("Error creating directory: {}", e))?;
         }
-        copy(src, dest)
+        copy(&copy_operation.source_path, &dest)
             .map(|_| ())
             .map_err(|e| e.to_string())
     }
 
-    fn on_finish(&self, state: FinishState) {
-        match state {
-            FinishState::Success(total_count) => {
+    fn on_finish(&self, total_operations: i64, result: CopyStrategyResult) {
+        match result {
+            CopyStrategyResult::Success() => {
                 println!(
-                    "{} {} assets have been exported successfully!",
-                    "Success:".green(),
-                    total_count,
+                    "{}",
+                    format!("{} assets have been exported successfully!", total_operations).green()
                 );
             }
-            FinishState::Failure(total_count, messages) => {
+            CopyStrategyResult::Failure(messages) => {
                 for message in &messages {
                     println!(
                         "{} {}",
@@ -232,10 +255,12 @@ impl AssetCopyStrategy for DefaultAssetCopyStrategy {
                     );
                 }
                 println!(
-                    "{} {} of {} assets could not be exported (see messages above)!",
-                    "Error:".red(),
-                    messages.len(),
-                    total_count,
+                    "{}",
+                    format!(
+                        "{} of {} assets could not be exported (see messages above)!",
+                        messages.len(),
+                        total_operations,
+                    ).red()
                 );
             }
         }

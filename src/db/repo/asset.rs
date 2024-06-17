@@ -4,8 +4,8 @@ use diesel::dsl::count;
 use diesel::prelude::*;
 
 use crate::db::connection::establish_connection;
-use crate::db::model::album::Album;
-use crate::db::model::asset::{AlbumAsset, Asset, AssetAttributes};
+use crate::db::model::album::AlbumDto;
+use crate::db::model::asset::{AlbumAssetDto, AssetDto, AssetAttributesDto};
 use crate::db::model::internal_resource::InternalResource;
 use crate::db::repo::asset::LocalAvailabilityFilter::Offloaded;
 use crate::db::schema::*;
@@ -67,7 +67,7 @@ pub struct ExportAssetDto {
     pub hidden: bool,
     pub original_filename: String,
     pub has_adjustments: bool,
-    pub album: Option<Album>
+    pub album: Option<AlbumDto>
 }
 
 #[derive(new)]
@@ -129,8 +129,8 @@ impl AssetRepository {
                     )
             )
             .select((
-                Asset::as_select(), AssetAttributes::as_select(), Option::<InternalResource>::as_select(),
-                Option::<AlbumAsset>::as_select(), Option::<Album>::as_select()
+                AssetDto::as_select(), AssetAttributesDto::as_select(), Option::<InternalResource>::as_select(),
+                Option::<AlbumAssetDto>::as_select(), Option::<AlbumDto>::as_select()
             ))
             .into_boxed();
 
@@ -145,7 +145,7 @@ impl AssetRepository {
         };
 
         let result = query
-            .load::<(Asset, AssetAttributes, Option<InternalResource>, Option<AlbumAsset>, Option<Album>)>(&mut conn)?;
+            .load::<(AssetDto, AssetAttributesDto, Option<InternalResource>, Option<AlbumAssetDto>, Option<AlbumDto>)>(&mut conn)?;
 
         Ok(
             result

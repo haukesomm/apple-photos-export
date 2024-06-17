@@ -2,7 +2,11 @@
 
 The following is a list of changes made to the project in reverse chronological order.
 
-## `0.2.0-snapshot`
+## `0.3.0-snapshot`
+
+- Rename database models to be better distinguishable from the library models.
+
+## `0.2.0`
 
 - Add support for offline-only libraries. Previously, the app only supported icloud-enabled libraries.
 - Rename `-e`/`--exclude-albums` flag to `-x`/`--exclude-albums`.

@@ -6,7 +6,7 @@ use crate::model::FromDbModel;
 
 #[derive(Clone, Queryable, Selectable)]
 #[diesel(table_name = crate::db::schema::albums)]
-pub struct Album {
+pub struct AlbumDto {
     pub id: i32,
     pub kind: i32,
     pub parent_id: Option<i32>,
@@ -15,8 +15,8 @@ pub struct Album {
     pub trashed: bool,
 }
 
-impl FromDbModel<Album> for crate::model::album::Album {
-    fn from_db_model(model: &Album) -> Result<Self, String> {
+impl FromDbModel<AlbumDto> for crate::model::album::Album {
+    fn from_db_model(model: &AlbumDto) -> Result<Self, String> {
         Ok(crate::model::album::Album {
             id: model.id,
             kind: Kind::try_from(model.kind)?,

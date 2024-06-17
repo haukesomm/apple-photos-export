@@ -1,6 +1,5 @@
-use diesel::{Associations, Identifiable, Queryable, Selectable};
+use diesel::{Identifiable, Queryable, Selectable};
 
-use crate::db::model::album::Album;
 use crate::db::repo::asset::ExportAssetDto;
 use crate::foundation::cocoa;
 use crate::model::asset::ExportAsset;
@@ -9,7 +8,7 @@ use crate::model::uti::Uti;
 
 #[derive(Clone, Queryable, Identifiable, Selectable)]
 #[diesel(table_name = crate::db::schema::assets)]
-pub struct Asset  {
+pub struct AssetDto {
     pub id: i32,
     pub uuid: String,
     pub dir: String,
@@ -25,19 +24,17 @@ pub struct Asset  {
     pub has_adjustments: bool,
 }
 
-#[derive(Clone, Queryable, Selectable, Identifiable, Associations)]
+#[derive(Clone, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::db::schema::asset_attributes)]
-#[diesel(belongs_to(Asset))]
-pub struct AssetAttributes {
+pub struct AssetAttributesDto {
     pub id: i32,
     pub asset_id: i32,
     pub original_filename: String,
 }
 
-#[derive(Queryable, Selectable, Associations)]
+#[derive(Queryable, Selectable)]
 #[diesel(table_name = crate::db::schema::album_assets)]
-#[diesel(belongs_to(Asset), belongs_to(Album))]
-pub struct AlbumAsset {
+pub struct AlbumAssetDto {
     pub asset_id: i32,
     pub album_id: i32,
 }

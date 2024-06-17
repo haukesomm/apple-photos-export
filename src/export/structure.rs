@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 use chrono::NaiveDateTime;
 use derive_new::new;
+use crate::db::model::album::AlbumDto;
 
-use crate::model::album::Album;
 use crate::model::asset::ExportAsset;
 
 pub trait OutputStrategy {
@@ -24,10 +24,44 @@ impl OutputStrategy for PlainOutputStrategy {
 }
 
 
-#[derive(new)]
 pub struct AlbumOutputStrategy {
     flatten: bool,
-    albums_by_id: HashMap<i32, Album>,
+    albums_by_id: HashMap<i32, AlbumDto>,
+}
+
+impl AlbumOutputStrategy {
+
+    pub fn new(flatten: bool, albums: Vec<AlbumDto>) -> Self {
+        let albums_by_id = albums
+            .into_iter()
+            .map(|a| (a.id, a))
+            .collect();
+
+        Self {
+            flatten,
+            albums_by_id
+        }
+    }
+
+    fn get_path_recursively(&self, album_id: i32) -> Result<PathBuf, String> {
+        let album = self.albums_by_id
+            .get(&album_id)
+            .ok_or(format!("Album with ID {} not found", album_id))?;
+
+        match album.parent_id {
+            None => {
+                let mut buffer = PathBuf::new();
+                if let Some(name) = &album.name {
+                    buffer.push(name);
+                }
+                Ok(buffer)
+            },
+            Some(parent_id) => {
+                let path = self.get_path_recursively(parent_id)?;
+                Ok(path.join(album.name.clone().unwrap_or(String::from("unnamed"))))
+            }
+        }
+    }
 }
 
 impl OutputStrategy for AlbumOutputStrategy {
@@ -39,7 +73,7 @@ impl OutputStrategy for AlbumOutputStrategy {
                 if self.flatten {
                     PathBuf::from(a.name.clone().unwrap_or(String::from("unnamed")))
                 } else {
-                    a.get_path(&self.albums_by_id)?
+                    self.get_path_recursively(a.id)?
                 }
             }
         };

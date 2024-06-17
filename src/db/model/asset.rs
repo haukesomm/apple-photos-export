@@ -32,6 +32,7 @@ pub struct AssetAttributesDto {
     pub original_filename: String,
 }
 
+#[allow(dead_code)]
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = crate::db::schema::album_assets)]
 pub struct AlbumAssetDto {

@@ -5,6 +5,7 @@ use chrono::NaiveDateTime;
 use crate::model::album::Album;
 use crate::model::uti::Uti;
 
+#[allow(dead_code)]
 pub struct ExportAsset {
     pub id: i32,
     pub uuid: String,

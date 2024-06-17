@@ -10,8 +10,6 @@ use crate::export::copying::{AbsolutePathBuildingCopyOperationFactoryDecorator, 
 use crate::export::exporter::Exporter;
 use crate::export::structure::{AlbumOutputStrategy, HiddenAssetHandlingOutputStrategyDecorator, NestingOutputStrategyDecorator, OutputStrategy, PlainOutputStrategy, YearMonthOutputStrategy};
 use crate::library::PhotosLibrary;
-use crate::model::FromDbModel;
-
 mod album_list;
 mod export;
 mod util;
@@ -205,24 +203,13 @@ fn setup_copy_operation_factory(db_path: String, args: &ExportArgs) -> Box<dyn C
 
 fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputStrategy> {
 
-    // TODO: Clean up this function and use result
     fn setup_album_output_strategy(db_path: String, flatten_albums: bool) -> Box<dyn OutputStrategy> {
         let album_repo = AlbumRepository::new(db_path);
-        let albums_by_id = album_repo
-            .get_all()
-            .unwrap()
-            .into_iter()
-            .map(|a| {
-                let album = model::album::Album::from_db_model(&a)
-                    .expect("Failed to convert Album from DB model");
-                (album.id, album)
-            })
-            .collect();
-
         Box::new(
             AlbumOutputStrategy::new(
                 flatten_albums,
-                albums_by_id
+                // FIXME: Use proper error handling!
+                album_repo.get_all().unwrap()
             )
         )
     }

@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-use std::path::PathBuf;
-
 use chrono::NaiveDateTime;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -31,6 +28,7 @@ impl TryFrom<i32> for Kind {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct Album {
     pub id: i32,
@@ -39,31 +37,4 @@ pub struct Album {
     pub parent_id: Option<i32>,
     pub start_date: Option<NaiveDateTime>,
     pub trashed: bool,
-}
-
-impl Album {
-
-    pub fn get_path(&self, albums: &HashMap<i32, Album>) -> Result<PathBuf, String> {
-        self.get_path_recursively(self.id, albums)
-    }
-
-    fn get_path_recursively(&self, album_id: i32, albums_by_id: &HashMap<i32, Album>) -> Result<PathBuf, String> {
-        let album = albums_by_id
-            .get(&album_id)
-            .ok_or(format!("Album with ID {} not found", album_id))?;
-
-        match album.parent_id {
-            None => {
-                let mut buffer = PathBuf::new();
-                if let Some(name) = &album.name {
-                    buffer.push(name);
-                }
-                Ok(buffer)
-            },
-            Some(parent_id) => {
-                let path = self.get_path_recursively(parent_id, albums_by_id)?;
-                Ok(path.join(album.name.clone().unwrap_or(String::from("unnamed"))))
-            }
-        }
-    }
 }

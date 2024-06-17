@@ -17,7 +17,7 @@ pub fn print_album_tree(library_path: String) {
     let album_result: Result<Vec<_>, _> = db_albums
         .iter()
         .map(|a| {
-            Album::from_db_model(a.clone())
+            Album::from_db_model(&a)
         })
         .collect();
 

@@ -4,6 +4,7 @@ The following is a list of changes made to the project in reverse chronological 
 
 ## `0.2.0-snapshot`
 
+- Add support for offline-only libraries. Previously, the app only supported icloud-enabled libraries.
 - Rename `-e`/`--exclude-albums` flag to `-x`/`--exclude-albums`.
 - Add new export flags:
     - `-e`/`--include-edited` to include edited asset versions in the export if available.

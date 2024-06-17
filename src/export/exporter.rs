@@ -112,7 +112,7 @@ impl Exporter {
             .map_err(|e| e.to_string())?
             .iter()
             .map(|a| {
-                ExportAsset::from_db_model(a.clone())
+                ExportAsset::from_db_model(a)
                     .map_err(|e| e.to_string())
             })
             .collect::<Result<Vec<ExportAsset>, String>>()

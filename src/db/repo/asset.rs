@@ -11,7 +11,7 @@ use crate::db::repo::asset::LocalAvailability::Offloaded;
 use crate::db::schema::*;
 use crate::model::album::Kind;
 
-
+// TODO: Rename to be more descriptive
 pub enum HiddenAssets {
     Include,
     Require,
@@ -55,8 +55,21 @@ pub enum AlbumFilter {
     None
 }
 
-
-pub type ExportableAsset = (Asset, AssetAttributes, InternalResource, Option<Album>);
+#[derive(new)]
+pub struct ExportAssetDto {
+    pub id: i32,
+    pub uuid: String,
+    pub dir: String,
+    pub filename: String,
+    pub compact_uti: Option<i32>,
+    pub uniform_type_identifier: String,
+    pub timestamp: f32,
+    pub favorite: bool,
+    pub hidden: bool,
+    pub original_filename: String,
+    pub has_adjustments: bool,
+    pub album: Option<Album>
+}
 
 #[derive(new)]
 pub struct AssetRepository {
@@ -71,7 +84,7 @@ impl AssetRepository {
         let mut conn = establish_connection(&self.db_path);
         let mut boxed_select = assets::table
             .inner_join(asset_attributes::table)
-            .inner_join(
+            .left_join(
                 internal_resources::table
                     .on(internal_resources::fingerprint.eq(asset_attributes::master_fingerprint))
             )
@@ -87,12 +100,12 @@ impl AssetRepository {
         Ok(boxed_select.first(&mut conn)?)
     }
 
-    pub fn get_exportable(&self) -> QueryResult<Vec<ExportableAsset>> {
+    pub fn get_exportable(&self) -> QueryResult<Vec<ExportAssetDto>> {
         let mut conn = establish_connection(&self.db_path);
 
         let mut query = assets::table
             .inner_join(
-                asset_attributes::table.inner_join(
+                asset_attributes::table.left_join(
                     internal_resources::table
                         .on(internal_resources::fingerprint.eq(asset_attributes::master_fingerprint))
                 )
@@ -102,7 +115,12 @@ impl AssetRepository {
             )
             .filter(
                 filter_visible(&self.hidden_assets)
-                    .and(internal_resources::local_availability.eq(1))
+                    .and(
+                        internal_resources::local_availability.eq(1)
+                            // second case is true if the library is offline-only, iCloud enabled
+                            // libraries seem to have local_availability set to a non-null value
+                            .or(internal_resources::local_availability.is_null())
+                    )
                     .and(
                         albums::kind.is_null()
                             .or(
@@ -112,7 +130,7 @@ impl AssetRepository {
                     )
             )
             .select((
-                Asset::as_select(), AssetAttributes::as_select(), InternalResource::as_select(),
+                Asset::as_select(), AssetAttributes::as_select(), Option::<InternalResource>::as_select(),
                 Option::<AlbumAsset>::as_select(), Option::<Album>::as_select()
             ))
             .into_boxed();
@@ -128,15 +146,28 @@ impl AssetRepository {
         };
 
         let result = query
-            .load::<(Asset, AssetAttributes, InternalResource, Option<AlbumAsset>, Option<Album>)>(&mut conn)?;
+            .load::<(Asset, AssetAttributes, Option<InternalResource>, Option<AlbumAsset>, Option<Album>)>(&mut conn)?;
 
         Ok(
             result
                 .iter()
                 .map(|(asset, attributes, internal_resources, _, albums)| {
-                    (asset.clone(), attributes.clone(), internal_resources.clone(), albums.clone())
+                    ExportAssetDto::new(
+                        asset.id,
+                        asset.uuid.clone(),
+                        asset.dir.clone(),
+                        asset.filename.clone(),
+                        internal_resources.clone().map(|ir| ir.compact_uti),
+                        asset.uniform_type_identifier.clone(),
+                        asset.date,
+                        asset.favorite,
+                        asset.hidden,
+                        attributes.original_filename.clone(),
+                        asset.has_adjustments,
+                        albums.clone()
+                    )
                 })
-                .collect::<Vec<ExportableAsset>>()
+                .collect::<Vec<ExportAssetDto>>()
         )
     }
 }

@@ -213,7 +213,7 @@ fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputSt
             .unwrap()
             .into_iter()
             .map(|a| {
-                let album = model::album::Album::from_db_model(a)
+                let album = model::album::Album::from_db_model(&a)
                     .expect("Failed to convert Album from DB model");
                 (album.id, album)
             })

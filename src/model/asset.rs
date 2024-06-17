@@ -1,10 +1,12 @@
 use std::path::PathBuf;
+
 use chrono::NaiveDateTime;
-use crate::db::repo::asset::ExportableAsset;
+
+use crate::db::repo::asset::ExportAssetDto;
 use crate::foundation::cocoa;
 use crate::model::album::Album;
-use crate::model::uti::Uti;
 use crate::model::FromDbModel;
+use crate::model::uti::Uti;
 
 pub struct ExportAsset {
     pub id: i32,
@@ -54,23 +56,26 @@ impl ExportAsset {
     }
 }
 
-impl FromDbModel<ExportableAsset> for ExportAsset {
-    fn from_db_model(model: ExportableAsset) -> Result<Self, String> {
-        let (asset, additional_attribs, internal_res, album) = model;
-
+impl FromDbModel<ExportAssetDto> for ExportAsset {
+    fn from_db_model(model: &ExportAssetDto) -> Result<Self, String> {
         Ok(ExportAsset {
-            id: asset.id,
-            uuid: asset.uuid,
-            dir: asset.dir,
-            filename: asset.filename,
-            original_uti: Uti::from_compact(internal_res.compact_uti)?,
-            derivate_uti: Uti::from_name(asset.uniform_type_identifier.as_str())?,
-            datetime: cocoa::parse_cocoa_timestamp(asset.date)?,
-            favorite: asset.favorite,
-            hidden: asset.hidden,
-            original_filename: additional_attribs.original_filename,
-            has_adjustments: asset.has_adjustments,
-            album: match album {
+            id: model.id,
+            uuid: model.uuid.clone(),
+            dir: model.dir.clone(),
+            filename: model.filename.clone(),
+            original_uti: match model.compact_uti {
+                // First one is a fallback for offline libraries as the compact uti is not available
+                // in that case. It should work but is not as accurate as the second one.
+                None => Uti::from_filename(&model.filename),
+                Some(uti) => Uti::from_compact(uti)
+            }?,
+            derivate_uti: Uti::from_name(model.uniform_type_identifier.as_str())?,
+            datetime: cocoa::parse_cocoa_timestamp(model.timestamp)?,
+            favorite: model.favorite,
+            hidden: model.hidden,
+            original_filename: model.original_filename.clone(),
+            has_adjustments: model.has_adjustments,
+            album: match &model.album {
                 None => None,
                 Some(a) => Some(Album::from_db_model(a)?),
             }

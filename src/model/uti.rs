@@ -17,16 +17,24 @@ const COMPACT_UTI_RAW: i32 = 9;
 const COMPACT_UTI_MP4: i32 = 24;
 const COMPACT_UTI_MOV: i32 = 23;
 
+const EXTENSION_HEIC: &str = "heic";
+const EXTENSION_JPEG: &str = "jpeg";
+const EXTENSION_PNG: &str = "png";
+const EXTENSION_GIF: &str = "gif";
+const EXTENSION_RAW: &str = "dng";
+const EXTENSION_MP4: &str = "mp4";
+const EXTENSION_MOV: &str = "mov";
+
 const PICTURE_DERIVATE_SUFFIX: &str = "_1_201_a";
 const VIDEO_DERIVATE_SUFFIX: &str = "_2_0_a";
 
-static HEIC: Uti = Uti::new(UTI_HEIC, COMPACT_UTI_HEIC, PICTURE_DERIVATE_SUFFIX, "heic");
-static JPEG: Uti = Uti::new(UTI_JPEG, COMPACT_UTI_JPEG, PICTURE_DERIVATE_SUFFIX, "jpeg");
-static PNG: Uti = Uti::new(UTI_PNG, COMPACT_UTI_PNG, PICTURE_DERIVATE_SUFFIX, "png");
-static GIF: Uti = Uti::new(UTI_GIF, COMPACT_UTI_GIF, PICTURE_DERIVATE_SUFFIX, "gif");
-static RAW: Uti = Uti::new(UTI_RAW, COMPACT_UTI_RAW, PICTURE_DERIVATE_SUFFIX, "dng");
-static MP4: Uti = Uti::new(UTI_MP4, COMPACT_UTI_MP4, VIDEO_DERIVATE_SUFFIX, "mp4");
-static MOV: Uti = Uti::new(UTI_MOV, COMPACT_UTI_MOV, VIDEO_DERIVATE_SUFFIX, "mov");
+static HEIC: Uti = Uti::new(UTI_HEIC, COMPACT_UTI_HEIC, PICTURE_DERIVATE_SUFFIX, EXTENSION_HEIC);
+static JPEG: Uti = Uti::new(UTI_JPEG, COMPACT_UTI_JPEG, PICTURE_DERIVATE_SUFFIX, EXTENSION_JPEG);
+static PNG: Uti = Uti::new(UTI_PNG, COMPACT_UTI_PNG, PICTURE_DERIVATE_SUFFIX, EXTENSION_PNG);
+static GIF: Uti = Uti::new(UTI_GIF, COMPACT_UTI_GIF, PICTURE_DERIVATE_SUFFIX, EXTENSION_GIF);
+static RAW: Uti = Uti::new(UTI_RAW, COMPACT_UTI_RAW, PICTURE_DERIVATE_SUFFIX, EXTENSION_RAW);
+static MP4: Uti = Uti::new(UTI_MP4, COMPACT_UTI_MP4, VIDEO_DERIVATE_SUFFIX, EXTENSION_MP4);
+static MOV: Uti = Uti::new(UTI_MOV, COMPACT_UTI_MOV, VIDEO_DERIVATE_SUFFIX, EXTENSION_MOV);
 
 #[derive(PartialEq)]
 pub struct Uti {
@@ -65,6 +73,24 @@ impl Uti {
             COMPACT_UTI_MP4 => Ok(&MP4),
             COMPACT_UTI_MOV => Ok(&MOV),
             _ => Err(format!("Unknown compact UTI: {}", compact))
+        }
+    }
+
+    pub fn from_filename(filename: &String) -> Result<&'static Uti, String> {
+        let extension = filename
+            .split('.')
+            .last()
+            .ok_or(format!("File {} seems to have no extension!", filename))?;
+
+        match extension {
+            EXTENSION_HEIC => Ok(&HEIC),
+            EXTENSION_JPEG => Ok(&JPEG),
+            EXTENSION_PNG => Ok(&PNG),
+            EXTENSION_GIF => Ok(&GIF),
+            EXTENSION_RAW => Ok(&RAW),
+            EXTENSION_MP4 => Ok(&MP4),
+            EXTENSION_MOV => Ok(&MOV),
+            _ => Err(format!("Unknown extension: {}", extension))
         }
     }
 }

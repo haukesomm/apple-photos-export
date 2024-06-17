@@ -74,11 +74,11 @@ impl Album {
 pub type AlbumDbModel = crate::db::model::album::Album;
 
 impl FromDbModel<AlbumDbModel> for Album {
-    fn from_db_model(model: AlbumDbModel) -> Result<Self, String> {
+    fn from_db_model(model: &AlbumDbModel) -> Result<Self, String> {
         Ok(Album {
             id: model.id,
             kind: Kind::try_from(model.kind)?,
-            name: model.name,
+            name: model.name.clone(),
             parent_id: model.parent_id,
             start_date: match model.start_date {
                 None => None,

@@ -7,7 +7,6 @@ use derive_new::new;
 use crate::model::album::Album;
 use crate::model::asset::ExportAsset;
 
-
 pub trait OutputStrategy {
 
     fn get_relative_output_dir(&self, asset: &ExportAsset) -> Result<PathBuf, String>;

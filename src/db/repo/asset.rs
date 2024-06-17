@@ -7,14 +7,13 @@ use crate::db::connection::establish_connection;
 use crate::db::model::album::Album;
 use crate::db::model::asset::{AlbumAsset, Asset, AssetAttributes};
 use crate::db::model::internal_resource::InternalResource;
-use crate::db::repo::asset::LocalAvailability::Offloaded;
+use crate::db::repo::asset::LocalAvailabilityFilter::Offloaded;
 use crate::db::schema::*;
 use crate::model::album::Kind;
 
-// TODO: Rename to be more descriptive
-pub enum HiddenAssets {
+pub enum HiddenAssetsFilter {
     Include,
-    Require,
+    Only,
     Exclude
 }
 
@@ -29,13 +28,13 @@ type AssetVisibilityFilter = dsl::And<
     dsl::Eq<assets::columns::duplicate_asset_visibility_state, i32>
 >;
 
-fn filter_visible(hidden_assets: &HiddenAssets) -> AssetVisibilityFilter {
+fn filter_visible(hidden_assets: &HiddenAssetsFilter) -> AssetVisibilityFilter {
     assets::trashed.eq(false)
         .and(assets::hidden.eq_any(
             match hidden_assets {
-                HiddenAssets::Include => vec![true, false],
-                HiddenAssets::Require => vec![true],
-                HiddenAssets::Exclude => vec![false]
+                HiddenAssetsFilter::Include => vec![true, false],
+                HiddenAssetsFilter::Only => vec![true],
+                HiddenAssetsFilter::Exclude => vec![false]
             }
         ))
         .and(assets::visibility_state.eq(0))
@@ -43,7 +42,7 @@ fn filter_visible(hidden_assets: &HiddenAssets) -> AssetVisibilityFilter {
 }
 
 
-pub enum LocalAvailability {
+pub enum LocalAvailabilityFilter {
     Any,
     Offloaded
 }
@@ -74,13 +73,13 @@ pub struct ExportAssetDto {
 #[derive(new)]
 pub struct AssetRepository {
     db_path: String,
-    hidden_assets: HiddenAssets,
+    hidden_assets: HiddenAssetsFilter,
     album_filter: AlbumFilter
 }
 
 impl AssetRepository {
 
-    pub fn get_visible_count(&self, availability: LocalAvailability) -> QueryResult<i64> {
+    pub fn get_visible_count(&self, availability: LocalAvailabilityFilter) -> QueryResult<i64> {
         let mut conn = establish_connection(&self.db_path);
         let mut boxed_select = assets::table
             .inner_join(asset_attributes::table)
@@ -88,7 +87,7 @@ impl AssetRepository {
                 internal_resources::table
                     .on(internal_resources::fingerprint.eq(asset_attributes::master_fingerprint))
             )
-            .filter(filter_visible(&HiddenAssets::Include))
+            .filter(filter_visible(&HiddenAssetsFilter::Include))
             .select(count(assets::id))
             .into_boxed();
 

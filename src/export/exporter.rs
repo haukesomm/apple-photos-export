@@ -1,7 +1,7 @@
 use colored::Colorize;
 use derive_new::new;
 
-use crate::db::repo::asset::{AssetRepository, LocalAvailability};
+use crate::db::repo::asset::{AssetRepository, LocalAvailabilityFilter};
 use crate::export::copying::{AssetCopyStrategy, CopyOperation, CopyOperationFactory, CopyStrategyResult};
 use crate::model::asset::ExportAsset;
 use crate::model::FromDbModel;
@@ -83,13 +83,13 @@ impl Exporter {
 
     fn get_visible_count(&self) -> Result<i64, String> {
         self.repo
-            .get_visible_count(LocalAvailability::Any)
+            .get_visible_count(LocalAvailabilityFilter::Any)
             .map_err(|e| e.to_string())
     }
 
     fn get_visible_offloaded_count(&self) -> Result<i64, String> {
         self.repo
-            .get_visible_count(LocalAvailability::Offloaded)
+            .get_visible_count(LocalAvailabilityFilter::Offloaded)
             .map_err(|e| e.to_string())
     }
 

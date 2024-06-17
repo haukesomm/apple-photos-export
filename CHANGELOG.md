@@ -10,6 +10,7 @@ The following is a list of changes made to the project in reverse chronological 
     - `-e`/`--include-edited` to include edited asset versions in the export if available.
     - `-E`/`--only-edited` to always export the edited version of an asset if available.
 - Internal refactoring of the export command's logic
+- Even more internal cleanup and refactoring
 
 ## `0.1.0`
 

@@ -5,9 +5,6 @@ use chrono::NaiveDateTime;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use crate::foundation::cocoa;
-use crate::model::FromDbModel;
-
 #[derive(Clone, PartialEq, EnumIter)]
 pub enum Kind {
     Root = 3999,
@@ -68,26 +65,5 @@ impl Album {
                 Ok(path.join(album.name.clone().unwrap_or(String::from("unnamed"))))
             }
         }
-    }
-}
-
-pub type AlbumDbModel = crate::db::model::album::Album;
-
-impl FromDbModel<AlbumDbModel> for Album {
-    fn from_db_model(model: &AlbumDbModel) -> Result<Self, String> {
-        Ok(Album {
-            id: model.id,
-            kind: Kind::try_from(model.kind)?,
-            name: model.name.clone(),
-            parent_id: model.parent_id,
-            start_date: match model.start_date {
-                None => None,
-                Some(d) => {
-                    let date = cocoa::parse_cocoa_timestamp(d)?;
-                    Some(date)
-                }
-            },
-            trashed: model.trashed,
-        })
     }
 }

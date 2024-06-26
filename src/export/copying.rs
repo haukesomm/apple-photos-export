@@ -1,7 +1,6 @@
 use std::fs::{copy, create_dir_all};
 use std::path::PathBuf;
 
-use colored::Colorize;
 use derive_new::new;
 
 use crate::export::structure::OutputStrategy;
@@ -191,34 +190,18 @@ impl CopyOperationFactory for SuffixSettingCopyOperationFactoryDecorator {
 }
 
 
-pub enum CopyStrategyResult {
-
-    /// Represents a success state with all assets having been exported.
-    Success(),
-
-    /// Represents a failure state with a list of error messages.
-    Failure(Vec<String>),
-}
-
 pub trait AssetCopyStrategy {
 
-    fn copy_asset(&self, copy_operation: &CopyOperation) -> Result<(), String>;
-
-    fn on_finish(&self, total_operations: i64, result: CopyStrategyResult);
+    fn copy_asset(&self, copy_operation: &CopyOperation) -> Result<u64, std::io::Error>;
 }
 
 #[derive(new)]
 pub struct DryRunAssetCopyStrategy;
 impl AssetCopyStrategy for DryRunAssetCopyStrategy {
 
-    fn copy_asset(&self, _: &CopyOperation) -> Result<(), String> {
+    fn copy_asset(&self, _: &CopyOperation) -> Result<u64, std::io::Error> {
         // do nothing - dry run
-        Ok(())
-    }
-
-    fn on_finish(&self, _: i64, _: CopyStrategyResult) {
-        println!("{}", "Done. This was a dry run - no files have been exported and all potential \
-        errors have been ignored.".magenta())
+        Ok(0)
     }
 }
 
@@ -226,43 +209,12 @@ impl AssetCopyStrategy for DryRunAssetCopyStrategy {
 pub struct DefaultAssetCopyStrategy;
 impl AssetCopyStrategy for DefaultAssetCopyStrategy {
 
-    fn copy_asset(&self, copy_operation: &CopyOperation) -> Result<(), String> {
+    fn copy_asset(&self, copy_operation: &CopyOperation) -> Result<u64, std::io::Error> {
         let dest = copy_operation.get_output_path();
 
         if let Some(parent) = dest.parent() {
-            create_dir_all(parent)
-                .map_err(|e| format!("Error creating directory: {}", e))?;
+            create_dir_all(parent)?
         }
         copy(&copy_operation.source_path, &dest)
-            .map(|_| ())
-            .map_err(|e| e.to_string())
-    }
-
-    fn on_finish(&self, total_operations: i64, result: CopyStrategyResult) {
-        match result {
-            CopyStrategyResult::Success() => {
-                println!(
-                    "{}",
-                    format!("{} assets have been exported successfully!", total_operations).green()
-                );
-            }
-            CopyStrategyResult::Failure(messages) => {
-                for message in &messages {
-                    println!(
-                        "{} {}",
-                        "Error exporting asset:".red(),
-                        message
-                    );
-                }
-                println!(
-                    "{}",
-                    format!(
-                        "{} of {} assets could not be exported (see messages above)!",
-                        messages.len(),
-                        total_operations,
-                    ).red()
-                );
-            }
-        }
     }
 }

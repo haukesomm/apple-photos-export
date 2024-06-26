@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 use chrono::NaiveDateTime;
 use derive_new::new;
-use crate::db::model::album::AlbumDto;
 
+use crate::db::model::album::AlbumDto;
 use crate::model::asset::ExportAsset;
 
 pub trait OutputStrategy {

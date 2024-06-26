@@ -2,9 +2,10 @@ use colored::Colorize;
 use derive_new::new;
 
 use crate::db::repo::asset::{AssetRepository, LocalAvailabilityFilter};
-use crate::export::copying::{AssetCopyStrategy, CopyOperation, CopyOperationFactory, CopyStrategyResult};
+use crate::export::copying::{AssetCopyStrategy, CopyOperation, CopyOperationFactory};
 use crate::model::asset::ExportAsset;
 use crate::model::FromDbModel;
+use crate::result::{PhotosExportError, PhotosExportResult};
 use crate::util::confirmation::{Answer, confirmation_prompt};
 
 #[derive(new)]
@@ -16,13 +17,13 @@ pub struct Exporter {
 
 impl Exporter {
 
-    pub fn export(&self) -> Result<(), String> {
+    pub fn export(&self) -> PhotosExportResult<u64> {
         let visible_count = self.get_visible_count()?;
         let visible_offloaded_count = self.get_visible_offloaded_count()?;
 
         if visible_offloaded_count > 0 {
             if let Answer::No = self.missing_assets_prompt(visible_count, visible_offloaded_count) {
-                return Ok(())
+                return Ok(0)
             }
         }
 
@@ -31,53 +32,56 @@ impl Exporter {
 
         if export_assets_count == 0 {
             self.no_matching_assets_warning();
-            return Ok(());
+            return Ok(0);
         }
 
         if let Answer::No = self.start_export_prompt(export_assets_count) {
-            return Ok(());
+            return Ok(0);
         }
 
-        let errors: Vec<String> = export_assets
+        let (export_count, error_messages) = export_assets
             .iter()
             .enumerate()
-            .filter_map(|(index, asset)| {
-                let result = self.export_single_asset(index, export_assets_count, asset);
-                if result.is_err() {
-                    Some(result.unwrap_err())
-                } else {
-                    None
+            .fold((0, Vec::<String>::new()), |(cnt, msgs), (index, op)| {
+                let result = self.export_single_asset(index, export_assets_count, op);
+                match result {
+                    Ok(_) => (cnt + 1, msgs),
+                    Err(e) => (cnt, [msgs, vec![e.to_string()]].concat())
                 }
-            })
-            .collect();
+            });
 
-        self.copy_strategy.on_finish(
-            export_assets_count,
-            if errors.is_empty() {
-                CopyStrategyResult::Success()
-            } else {
-                CopyStrategyResult::Failure(errors)
-            }
-        );
-
-        Ok(())
+        if error_messages.is_empty() {
+            Ok(export_count)
+        } else {
+            Err(PhotosExportError { messages: error_messages })
+        }
     }
 
 
     fn export_single_asset(&self, index: usize, total: i64, copy_operation: &CopyOperation) -> Result<(), String> {
-        let source_path = &copy_operation.source_path;
-        let output_path = &copy_operation.get_output_path();
+        let source_path = copy_operation.source_path.to_string_lossy().to_string();
+        let output_path = copy_operation.get_output_path().to_string_lossy().to_string();
 
         println!(
             "{} Exporting '{}' to '{}'",
             format!("({}/{})", index + 1, total).yellow(),
-            source_path.to_string_lossy().dimmed(),
-            output_path.to_str().unwrap().dimmed()
+            source_path.dimmed(),
+            output_path.dimmed()
         );
 
-        self.copy_strategy
-            .copy_asset(copy_operation)
-            .map_err(|e| format!("{}: {}", source_path.to_string_lossy(), e))
+        self.copy_strategy.copy_asset(copy_operation)
+            .map(|_| ())
+            .map_err(|e| {
+                // Short error message to print to the console
+                eprintln!("{} {}", "Error:".red(), e.to_string());
+                // Long, more detailed error message to include in the error log
+                format!(
+                    "Error exporting '{}' to '{}': {}",
+                    source_path,
+                    output_path,
+                    e.to_string()
+                )
+            })
     }
 
 

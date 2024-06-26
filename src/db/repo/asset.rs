@@ -5,7 +5,7 @@ use diesel::prelude::*;
 
 use crate::db::connection::establish_connection;
 use crate::db::model::album::AlbumDto;
-use crate::db::model::asset::{AlbumAssetDto, AssetDto, AssetAttributesDto};
+use crate::db::model::asset::{AlbumAssetDto, AssetAttributesDto, AssetDto};
 use crate::db::model::internal_resource::InternalResource;
 use crate::db::repo::asset::LocalAvailabilityFilter::Offloaded;
 use crate::db::schema::*;

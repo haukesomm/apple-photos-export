@@ -1,23 +1,25 @@
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
+use colored::Colorize;
 
 use crate::album_list::print_album_tree;
 use crate::changelog::print_changelog;
 use crate::db::repo::album::AlbumRepository;
 use crate::db::repo::asset::{AlbumFilter, AssetRepository, HiddenAssetsFilter};
 use crate::export::copying::{AbsolutePathBuildingCopyOperationFactoryDecorator, AssetCopyStrategy, CombiningCopyOperationFactory, CopyOperationFactory, DefaultAssetCopyStrategy, DerivatesCopyOperationFactory, DryRunAssetCopyStrategy, FilenameRestoringCopyOperationFactoryDecorator, OriginalsCopyOperationFactory, OutputStructureCopyOperationFactoryDecorator, SuffixSettingCopyOperationFactoryDecorator};
-use crate::export::exporter::Exporter;
+use crate::export::export_assets;
 use crate::export::structure::{AlbumOutputStrategy, HiddenAssetHandlingOutputStrategyDecorator, NestingOutputStrategyDecorator, OutputStrategy, PlainOutputStrategy, YearMonthOutputStrategy};
-use crate::library::PhotosLibrary;
+use crate::result::PhotosExportResult;
+
 mod album_list;
 mod export;
 mod util;
 mod changelog;
 mod db;
 mod foundation;
-mod library;
 mod model;
+mod result;
 
 
 /// Export photos from the macOS Photos library, organized by album and/or date.
@@ -111,33 +113,43 @@ pub struct ExportArgs {
 fn main() {
     let args = Arguments::parse();
 
-    match args.command {
-        Commands::Changelog => print_changelog().unwrap(),
-        Commands::ListAlbums(list_args) => print_album_tree(list_args.library_path),
-        Commands::Export(export_args) => export_assets(export_args)
+    let result = match args.command {
+        Commands::Changelog => print_changelog(),
+        Commands::ListAlbums(list_args) => print_album_tree(
+            get_database_path(&list_args.library_path)
+        ),
+        Commands::Export(export_args) => run_photos_export(&export_args),
+    };
+
+    // Handle uncaught errors and print them to stderr
+    // Errors requiring more complex handling may have already been handled at this point
+    if let Err(e) = result {
+        for message in &e.messages {
+            eprintln!("{} {}", "Error:".red(), message);
+        }
+        std::process::exit(1);
     }
 }
 
 
-fn export_assets(args: ExportArgs) {
-    let library_path = args.library_path.clone();
-    let photos_library = PhotosLibrary::new(library_path.clone());
+fn get_database_path(library_path: &str) -> String {
+    PathBuf::new()
+        .join(library_path)
+        .join("database")
+        .join("Photos.sqlite")
+        .to_string_lossy()
+        .to_string()
+}
 
-    let asset_repo = setup_asset_repo(photos_library.db_path(), &args);
-    let copy_operation_factory = setup_copy_operation_factory(photos_library.db_path(), &args);
-    let copy_strategy = setup_copy_strategy(args.dry_run);
 
-    let exporter = Exporter::new(
-        asset_repo,
-        copy_operation_factory,
-        copy_strategy,
-    );
+fn run_photos_export(export_args: &ExportArgs) -> PhotosExportResult<()> {
+    let db_path = get_database_path(&export_args.library_path);
 
-    let result = exporter.export();
+    let asset_repo = setup_asset_repo(db_path.clone(), export_args);
+    let copy_operation_factory = setup_copy_operation_factory(db_path.clone(), export_args)?;
+    let copy_strategy = setup_copy_strategy(export_args.dry_run);
 
-    if let Err(e) = result {
-        eprintln!("Unexpected error during the asset export: {}", e);
-    }
+    export_assets(asset_repo, copy_operation_factory, copy_strategy)
 }
 
 fn setup_asset_repo(db_path: String, args: &ExportArgs) -> AssetRepository {
@@ -160,7 +172,10 @@ fn setup_asset_repo(db_path: String, args: &ExportArgs) -> AssetRepository {
     AssetRepository::new(db_path, hidden_asset_filter, album_filter)
 }
 
-fn setup_copy_operation_factory(db_path: String, args: &ExportArgs) -> Box<dyn CopyOperationFactory> {
+fn setup_copy_operation_factory(
+    db_path: String,
+    args: &ExportArgs
+) -> PhotosExportResult<Box<dyn CopyOperationFactory>> {
     let factory: Box<dyn CopyOperationFactory> = Box::new(
         AbsolutePathBuildingCopyOperationFactoryDecorator::new(
             PathBuf::from(&args.library_path),
@@ -186,36 +201,35 @@ fn setup_copy_operation_factory(db_path: String, args: &ExportArgs) -> Box<dyn C
                     } else {
                         Box::new(OriginalsCopyOperationFactory::new())
                     },
-                    setup_output_strategy(db_path, args)
+                    setup_output_strategy(db_path, args)?
                 )
             )
         )
     );
 
-    if args.restore_original_filenames {
-        Box::new(
-            FilenameRestoringCopyOperationFactoryDecorator::new(factory)
-        )
-    } else {
-        factory
-    }
+    Ok(
+        if args.restore_original_filenames {
+            Box::new(
+                FilenameRestoringCopyOperationFactoryDecorator::new(factory)
+            )
+        } else {
+            factory
+        }
+    )
 }
 
-fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputStrategy> {
-
-    fn setup_album_output_strategy(db_path: String, flatten_albums: bool) -> Box<dyn OutputStrategy> {
-        let album_repo = AlbumRepository::new(db_path);
-        Box::new(
-            AlbumOutputStrategy::new(
-                flatten_albums,
-                // FIXME: Use proper error handling!
-                album_repo.get_all().unwrap()
-            )
-        )
-    }
+fn setup_output_strategy(
+    db_path: String,
+    args: &ExportArgs
+) -> PhotosExportResult<Box<dyn OutputStrategy>> {
 
     let strategy: Box<dyn OutputStrategy> = if args.album {
-        setup_album_output_strategy(db_path, args.flatten_albums)
+        Box::new(
+            AlbumOutputStrategy::new(
+                args.flatten_albums,
+                AlbumRepository::new(db_path).get_all()?
+            )
+        )
     } else if args.year_month {
         Box::new(YearMonthOutputStrategy::asset_date_based())
     } else if args.year_month_album {
@@ -223,7 +237,12 @@ fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputSt
             NestingOutputStrategyDecorator::new(
                 vec![
                     Box::new(YearMonthOutputStrategy::album_date_based()),
-                    setup_album_output_strategy(db_path, args.flatten_albums)
+                    Box::new(
+                        AlbumOutputStrategy::new(
+                            args.flatten_albums,
+                            AlbumRepository::new(db_path).get_all()?
+                        )
+                    )
                 ]
             )
         )
@@ -231,8 +250,10 @@ fn setup_output_strategy(db_path: String, args: &ExportArgs) -> Box<dyn OutputSt
         Box::new(PlainOutputStrategy::new())
     };
 
-    Box::new(
-        HiddenAssetHandlingOutputStrategyDecorator::new(strategy)
+    Ok(
+        Box::new(
+            HiddenAssetHandlingOutputStrategyDecorator::new(strategy)
+        )
     )
 }
 

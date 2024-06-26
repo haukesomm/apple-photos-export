@@ -1,12 +1,13 @@
 use std::io::{stdout, Write};
 
-use termimad::{Area, Error, MadSkin, MadView};
+use termimad::{Area, MadSkin, MadView};
 use termimad::crossterm::{event, queue, terminal};
 use termimad::crossterm::cursor::{Hide, Show};
 use termimad::crossterm::event::{Event, KeyEvent};
 use termimad::crossterm::terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
 
 use crate::changelog;
+use crate::result::PhotosExportResult;
 
 const CHANGELOG: &str = include_str!("../CHANGELOG.md");
 
@@ -14,7 +15,7 @@ fn get_view_area() -> Area {
     Area::full_screen()
 }
 
-pub fn print_changelog() -> Result<(), Error> {
+pub fn print_changelog() -> PhotosExportResult<()> {
     let mut w = stdout(); // we could also have used stderr
 
     queue!(w, EnterAlternateScreen)?;

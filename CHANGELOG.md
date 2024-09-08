@@ -4,6 +4,9 @@ The following is a list of changes made to the project in reverse chronological 
 
 ## `0.3.0-snapshot`
 
+- Target macOS 14.6 with Photos 9.0
+  - Even though the version remained the same, the internal schema of the Photos database changed with the above 
+    version
 - Improve error handling and error messages
   - Errors are now exported to an error log file in the export directory
   - Internal error handling has been improved

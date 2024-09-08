@@ -275,9 +275,9 @@ diesel::table! {
 
     /// This table is used to link assets to albums in the Photos database.
     ///
-    /// - `Photos.db` name: `Z_28ASSETS`
+    /// - `Photos.db` name: `Z_29ASSETS`
     /// - Type: `INTEGER`
-    #[sql_name = "Z_28ASSETS"]
+    #[sql_name = "Z_29ASSETS"]
     album_assets (asset_id, album_id) {
 
         /// ID of the asset.
@@ -291,7 +291,7 @@ diesel::table! {
         ///
         /// - `Photos.db` name: `Z_28ALBUMS`
         /// - Type: `INTEGER`
-        #[sql_name = "Z_28ALBUMS"]
+        #[sql_name = "Z_29ALBUMS"]
         album_id -> Integer,
     }
 }

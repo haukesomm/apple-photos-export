@@ -11,11 +11,6 @@ It is intended for backup purposes and does not modify the library in any way.
 > guaranteed to work with future versions of the Photos app or at all. Use it at your own risk and always keep a backup
 > of your library.
 
-Quick links to installation and usage instructions:
-
-- [Building and Running locally](#building-and-running-locally)
-- [Installation via Homebrew](#installation-via-homebrew)
-
 ## Highlights
 
 - Lists all albums of the library as an ascii tree
@@ -27,6 +22,23 @@ Quick links to installation and usage instructions:
     - Year/Month/Album
 - Optionally restores the original file names that were used when importing the files into the library
 - Dry-run mode to test the export without actually copying any files
+
+## Compatibility
+
+> [!NOTE]
+> Currently, each version of this app only works with a sepcific combination of macOS and the Photos app.  
+> Backwards compatibility to older versions is planned for future releases.
+
+The following versions of the app are compatible with the following macOS/PhotosLibrary version:
+
+| App version       | macOS Name | macOS Version   | Photos Version | Notes                                                                                                          |
+|:------------------|:-----------|:----------------|:---------------|:---------------------------------------------------------------------------------------------------------------|
+| `0.0.1` - `0.2.0` | Sonoma     | `14.0` - `14.5` | `9.0 `         |                                                                                                                |
+| `0.3.0`           | Sonoma     | `14.6`          | `9.0`          | The internal schema of the Photos app has changed, making this release incompatible with other Sonoma releases |
+
+## Changelog
+
+For an overview of the changes made between each version, please have a look at the [CHANGELOG](CHANGELOG.md).
 
 ## Usage
 
@@ -133,19 +145,3 @@ $ apple-photos-export export [library_path] [output_path] --must-be-hidden
 ```
 
 </details>
-
-## Changelog
-
-For an overview of the changes made between each version, please have a look at the [CHANGELOG](CHANGELOG.md).
-
-## Compatibility
-
-The program has been tested on the following OSs with the following versions of the Photos app:
-
-| OS                  | Photos Version                        |
-|---------------------|---------------------------------------|
-| macOS 14.0 (Sonoma) | 9.0 (608.2.113), <br> 9.0 (621.0.110) |
-
-> [!NOTE]
-> The above table only contains vesion that I explicitly tested.
-> However, there's a high chance this tool works on other versions too.

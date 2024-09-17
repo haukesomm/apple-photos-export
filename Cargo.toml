@@ -10,7 +10,7 @@ derive-new = "0.6.0"
 num-traits = "0.2.18"
 clap = { version = "4.5.1", features = ["derive"] }
 chrono = "0.4.34"
-diesel = { version = "2.1.5", features = ["sqlite", "chrono"] }
+diesel = { version = "2.2.4", features = ["sqlite", "chrono"] }
 rand = "0.8.5"
 strum = "0.26"
 strum_macros = "0.26"

@@ -2,7 +2,7 @@
 
 The following is a list of changes made to the project in reverse chronological order.
 
-## `0.3.0-snapshot`
+## `0.3.0`
 
 - Target macOS 14.6 with Photos 9.0
   - Even though the version remained the same, the internal schema of the Photos database changed with the above 

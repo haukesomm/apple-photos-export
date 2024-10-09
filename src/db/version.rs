@@ -9,28 +9,36 @@ use crate::result::{PhotosExportError, PhotosExportResult};
 use super::{connection, model::metadata::MetadataDto, schema::metadata};
 
 
-#[allow(dead_code)]
-mod ranges {
-    pub struct Range {
-        pub min: u64,
-        pub max: u64,
-        pub desc: &'static str
+const MIN_SUPPORTED: u64 = 18000;
+const MAX_SUPPORTED: u64 = 18999;
+
+fn is_supported(model_version: u64) -> bool {
+    model_version >= MIN_SUPPORTED && model_version <= MAX_SUPPORTED
+}
+
+
+struct VersionInfo {
+    pub name: &'static str,
+}
+
+fn get_version_info(model_version: u64) -> VersionInfo {
+    match model_version {
+        0 ..= 16999 => VersionInfo { name: "Pre macOS 14.0 Sonoma" },
+        17000 ..= 17599 => VersionInfo { name: "Photos 9.0, macOS 14.0 to 14.5 Sonoma" },
+        17600 ..= 17999 => VersionInfo { name: "Photos 9.0, macOS 14.6 Sonoma" },
+        18000 ..= 18999 => VersionInfo { name: "Photos 10.0, macOS 15 Sequoia" },
+        _ => VersionInfo { name: "Unknown" }
     }
-
-    pub const CURRENT_SUPPORTED: Range = PHOTOS_9_MACOS_14_6;
-
-    pub const PHOTOS_9: Range = Range { min: 17000, max: 17599, desc: "Photos 9.0, macOS 14.0 to 14.5 Sonoma" };
-    pub const PHOTOS_9_MACOS_14_6: Range = Range { min: 17600, max: 17999, desc: "Photos 9.0, macOS 14.6 Sonoma" };
 }
 
 
 pub fn check_library_version(database_path: &String) -> PhotosExportResult<()> {
-    let model_version: u64 = get_library_version(database_path)?;
+    let model_number: u64 = get_library_version(database_path)?;
 
-    let min = ranges::CURRENT_SUPPORTED.min;
-    let max = ranges::CURRENT_SUPPORTED.max;
+    let library_version = get_version_info(model_number);
+    let minimum_version = get_version_info(MIN_SUPPORTED);
 
-    if model_version >= min && model_version <= max {
+    if is_supported(model_number) {
         Ok(())
     } else {
         Err(
@@ -38,12 +46,10 @@ pub fn check_library_version(database_path: &String) -> PhotosExportResult<()> {
                 format!(
                     "Unsupported library version!\n\
                     - Your version is: {}\n\
-                    - The currently supported library format is: {} (versions {} to {})\n\
+                    - The minimum supported version is: {}\n\
                     - See the project's README for more version information.",
-                    model_version,
-                    format!("{}", ranges::CURRENT_SUPPORTED.desc).italic(),
-                    min,
-                    max,
+                    format!("{}", library_version.name).italic(),
+                    format!("{}", minimum_version.name).italic()
                 )
             )
         )

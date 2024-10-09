@@ -84,8 +84,11 @@ impl AssetRepository {
         let mut boxed_select = assets::table
             .inner_join(asset_attributes::table)
             .left_join(
-                internal_resources::table
-                    .on(internal_resources::fingerprint.eq(asset_attributes::master_fingerprint))
+                internal_resources::table.on(
+                    internal_resources::asset_id
+                        .eq(asset_attributes::asset_id)
+                        .and(internal_resources::data_store_subtype.eq(1))
+                )
             )
             .filter(filter_visible(&HiddenAssetsFilter::Include))
             .select(count(assets::id))
@@ -105,8 +108,11 @@ impl AssetRepository {
         let mut query = assets::table
             .inner_join(
                 asset_attributes::table.left_join(
-                    internal_resources::table
-                        .on(internal_resources::fingerprint.eq(asset_attributes::master_fingerprint))
+                    internal_resources::table.on(
+                        internal_resources::asset_id
+                            .eq(asset_attributes::asset_id)
+                            .and(internal_resources::data_store_subtype.eq(1))
+                    )
                 )
             )
             .left_join(
@@ -162,7 +168,7 @@ impl AssetRepository {
                         asset.favorite,
                         asset.hidden,
                         attributes.original_filename.clone(),
-                        asset.has_adjustments,
+                        asset.adjustments_state > 0,
                         albums.clone()
                     )
                 })

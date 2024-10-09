@@ -20,7 +20,7 @@ pub struct AssetDto {
     pub trashed: bool,
     pub visibility_state: i32,
     pub duplicate_asset_visibility_state: i32,
-    pub has_adjustments: bool,
+    pub adjustments_state: i32,
 }
 
 #[derive(Clone, Queryable, Selectable, Identifiable)]

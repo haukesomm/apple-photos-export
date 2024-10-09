@@ -169,10 +169,14 @@ diesel::table! {
 
         /// Indicates whether the asset has adjustments (i.e. has been edited).
         ///
-        /// - `Photos.db` name: `ZHASADJUSTMENTS`
-        /// - Type: `BOOL`
-        #[sql_name = "ZHASADJUSTMENTS"]
-        has_adjustments -> Bool,
+        /// - `Photos.db` name: `ZADJUSTMENTSSTATE`
+        /// - Type: `Integer`
+        ///
+        /// Known possible values:
+        //  - `0`: No adjustments
+        //  - Values `> 0`: Has adjustments
+        #[sql_name = "ZADJUSTMENTSSTATE"]
+        adjustments_state -> Integer,
     }
 }
 
@@ -236,6 +240,13 @@ diesel::table! {
         #[sql_name = "Z_PK"]
         id -> Integer,
 
+        /// Asset the internal resource is associated with.
+        ///
+        /// - `Photos.db` name: `ZASSET`
+        /// - Type: `INTEGER`
+        #[sql_name = "ZASSET"]
+        asset_id -> Integer,
+
         /// Fingerpring of the asset.
         ///
         /// This is used to link the asset to the additional asset attributes table.
@@ -244,6 +255,18 @@ diesel::table! {
         /// - Type: `VARCHAR`
         #[sql_name = "ZFINGERPRINT"]
         fingerprint -> VarChar,
+
+        /// Data-store subtype id of the asset.
+        ///
+        /// The id of this column seems to be related to the type of asset.
+        ///
+        /// - `Photos.db` name: `ZDATASTORESUBTYPE`
+        /// - Type: `INTEGER`
+        ///
+        /// Known possible values:
+        /// - `1`: Original asset
+        #[sql_name = "ZDATASTORESUBTYPE"]
+        data_store_subtype -> Integer,
 
         /// Indicates whether the asset is available locally.
         ///
@@ -275,9 +298,9 @@ diesel::table! {
 
     /// This table is used to link assets to albums in the Photos database.
     ///
-    /// - `Photos.db` name: `Z_29ASSETS`
+    /// - `Photos.db` name: `Z_30ASSETS`
     /// - Type: `INTEGER`
-    #[sql_name = "Z_29ASSETS"]
+    #[sql_name = "Z_30ASSETS"]
     album_assets (asset_id, album_id) {
 
         /// ID of the asset.
@@ -291,7 +314,7 @@ diesel::table! {
         ///
         /// - `Photos.db` name: `Z_28ALBUMS`
         /// - Type: `INTEGER`
-        #[sql_name = "Z_29ALBUMS"]
+        #[sql_name = "Z_30ALBUMS"]
         album_id -> Integer,
     }
 }

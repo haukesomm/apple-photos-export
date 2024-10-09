@@ -4,6 +4,8 @@ The following is a list of changes made to the project in reverse chronological 
 
 ## `0.4.0-snapshot`
 
+- Target macOS 15 with Photos 10.0
+
 ## `0.3.0`
 
 - Target macOS 14.6 with Photos 9.0

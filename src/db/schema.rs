@@ -4,6 +4,19 @@
 
 diesel::table! {
 
+    #[sql_name = "Z_METADATA"]
+    metadata (version) {
+        
+        #[sql_name = "Z_VERSION"]
+        version -> Integer,
+
+        #[sql_name = "Z_PLIST"]
+        plist -> Binary
+    }
+}
+
+diesel::table! {
+
     /// This table contains information about albums in the Photos database.
     ///
     /// - `Photos.db` name: `ZGENERICALBUM`

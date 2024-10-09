@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 use colored::Colorize;
+use db::version::check_library_version;
 
 use crate::album_list::print_album_tree;
 use crate::changelog::print_changelog;
@@ -113,12 +114,24 @@ pub struct ExportArgs {
 fn main() {
     let args = Arguments::parse();
 
-    let result = match args.command {
+    let result: PhotosExportResult<()> = match args.command {
         Commands::Changelog => print_changelog(),
-        Commands::ListAlbums(list_args) => print_album_tree(
-            get_database_path(&list_args.library_path)
-        ),
-        Commands::Export(export_args) => run_photos_export(&export_args),
+        Commands::ListAlbums(list_args) => {
+            let database_path = get_database_path(&list_args.library_path);
+
+            check_library_version(&database_path)
+                .and_then(|_| {
+                    print_album_tree(
+                        get_database_path(&list_args.library_path)
+                    )
+                })
+        },
+        Commands::Export(export_args) => {
+            let database_path = get_database_path(&export_args.library_path);
+
+            check_library_version(&database_path)
+                .and_then(|_| run_photos_export(&export_args))
+        },
     };
 
     // Handle uncaught errors and print them to stderr

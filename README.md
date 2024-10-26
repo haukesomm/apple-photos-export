@@ -33,7 +33,7 @@ The following versions of the app are compatible with the following macOS/Photos
 
 | App version               | macOS Name | macOS Version   | Photos Version | Notes                                                                                                          |
 |:--------------------------|:-----------|:----------------|:---------------|:---------------------------------------------------------------------------------------------------------------|
-| `0.4.0-SNAPSHOT`          | Sequoia    | `15.0`          | `10.0`         |                                                                                                                |
+| `0.4.0`, `0.5.0-snapshot` | Sequoia    | `15.0`          | `10.0`         |                                                                                                                |
 | `0.3.0`                   | Sonoma     | `14.6`          | `9.0`          | The internal schema of the Photos app has changed, making this release incompatible with other Sonoma releases |
 | `0.2.0`, `0.1.0`, `0.0.1` | Sonoma     | `14.0` - `14.5` | `9.0 `         |                                                                                                                |
 

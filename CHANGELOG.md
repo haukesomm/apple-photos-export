@@ -2,7 +2,7 @@
 
 The following is a list of changes made to the project in reverse chronological order.
 
-## `0.4.0-snapshot`
+## `0.4.0`
 
 - Target macOS 15 with Photos 10.0
 

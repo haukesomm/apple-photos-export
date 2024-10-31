@@ -47,11 +47,11 @@ impl FromDbModel<ExportAssetDto> for ExportAsset {
             uuid: model.uuid.clone(),
             dir: model.dir.clone(),
             filename: model.filename.clone(),
-            original_uti: match model.compact_uti {
+            original_uti: match &model.compact_uti {
                 // First one is a fallback for offline libraries as the compact uti is not available
                 // in that case. It should work but is not as accurate as the second one.
                 None => Uti::from_filename(&model.filename),
-                Some(uti) => Uti::from_compact(uti)
+                Some(uti) => Uti::from_compact(uti.as_str())
             }?,
             derivate_uti: Uti::from_name(model.uniform_type_identifier.as_str())?,
             datetime: cocoa::parse_cocoa_timestamp(model.timestamp)?,

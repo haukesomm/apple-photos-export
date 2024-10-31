@@ -301,9 +301,9 @@ diesel::table! {
         /// determined by the file extension.
         ///
         /// - `Photos.db` name: `ZCOMPACTUTI`
-        /// - Type: `INTEGER`
+        /// - Type: `VARCHAR`
         #[sql_name = "ZCOMPACTUTI"]
-        compact_uti -> Integer,
+        compact_uti -> VarChar,
     }
 }
 

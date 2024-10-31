@@ -60,7 +60,7 @@ pub struct ExportAssetDto {
     pub uuid: String,
     pub dir: String,
     pub filename: String,
-    pub compact_uti: Option<i32>,
+    pub compact_uti: Option<String>,
     pub uniform_type_identifier: String,
     pub timestamp: f32,
     pub favorite: bool,

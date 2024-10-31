@@ -6,5 +6,5 @@ pub struct InternalResource {
     pub id: i32,
     pub fingerprint: String,
     pub local_availability: i32,
-    pub compact_uti: i32,
+    pub compact_uti: String,
 }

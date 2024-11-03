@@ -6,6 +6,12 @@ The following is a list of changes made to the project in reverse chronological 
 
 (no changes yet)
 
+## `0.4.1`
+
+- Adds support for `.bmp` and `.raf` files (see [#1](https://github.com/haukesomm/apple-photos-export/issues/1))
+- Adds support for JPEG files stored as `.jpg` internally that could not be exported due to the exporter failing to
+  determine their UTI (see [#1](https://github.com/haukesomm/apple-photos-export/issues/1))
+
 ## `0.4.0`
 
 - Target macOS 15 with Photos 10.0

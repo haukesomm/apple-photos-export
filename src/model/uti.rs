@@ -23,6 +23,7 @@ const COMPACT_UTI_MOV: &str = "23";
 
 const EXTENSION_HEIC: &str = "heic";
 const EXTENSION_JPEG: &str = "jpeg";
+const EXTENSION_JPG: &str = "jpg";
 const EXTENSION_PNG: &str = "png";
 const EXTENSION_GIF: &str = "gif";
 const EXTENSION_BMP: &str = "bmp";
@@ -36,6 +37,7 @@ const VIDEO_DERIVATE_SUFFIX: &str = "_2_0_a";
 
 static HEIC: Uti = Uti::new(UTI_HEIC, COMPACT_UTI_HEIC, PICTURE_DERIVATE_SUFFIX, EXTENSION_HEIC);
 static JPEG: Uti = Uti::new(UTI_JPEG, COMPACT_UTI_JPEG, PICTURE_DERIVATE_SUFFIX, EXTENSION_JPEG);
+static JPG: Uti = Uti::new(UTI_JPEG, COMPACT_UTI_JPEG, PICTURE_DERIVATE_SUFFIX, EXTENSION_JPG);
 static PNG: Uti = Uti::new(UTI_PNG, COMPACT_UTI_PNG, PICTURE_DERIVATE_SUFFIX, EXTENSION_PNG);
 static GIF: Uti = Uti::new(UTI_GIF, COMPACT_UTI_GIF, PICTURE_DERIVATE_SUFFIX, EXTENSION_GIF);
 static BMP: Uti = Uti::new(UTI_BMP, COMPACT_UTI_BMP, PICTURE_DERIVATE_SUFFIX, EXTENSION_BMP);
@@ -77,26 +79,26 @@ impl Uti {
         }
     }
 
-    pub fn from_compact(compact: &str) -> Result<&'static Uti, String> {
-        match compact {
-            COMPACT_UTI_HEIC => Ok(&HEIC),
-            COMPACT_UTI_JPEG => Ok(&JPEG),
-            COMPACT_UTI_PNG => Ok(&PNG),
-            COMPACT_UTI_GIF => Ok(&GIF),
-            COMPACT_UTI_BMP => Ok(&BMP),
-            COMPACT_UTI_DNG => Ok(&DNG),
-            COMPACT_UTI_RAF => Ok(&RAF),
-            COMPACT_UTI_MP4 => Ok(&MP4),
-            COMPACT_UTI_MOV => Ok(&MOV),
+    pub fn from_compact_and_filename(compact: &str, filename: &str) -> Result<&'static Uti, String> {
+        let extension = Self::extension_from_filename(filename)?;
+
+        match (compact, extension) {
+            (COMPACT_UTI_HEIC, _) => Ok(&HEIC),
+            (COMPACT_UTI_JPEG, EXTENSION_JPEG) => Ok(&JPEG),
+            (COMPACT_UTI_JPEG, EXTENSION_JPG) => Ok(&JPG),
+            (COMPACT_UTI_PNG, _) => Ok(&PNG),
+            (COMPACT_UTI_GIF, _) => Ok(&GIF),
+            (COMPACT_UTI_BMP, _) => Ok(&BMP),
+            (COMPACT_UTI_DNG, _) => Ok(&DNG),
+            (COMPACT_UTI_RAF, _) => Ok(&RAF),
+            (COMPACT_UTI_MP4, _) => Ok(&MP4),
+            (COMPACT_UTI_MOV, _) => Ok(&MOV),
             _ => Err(format!("Unknown compact UTI: {}", compact))
         }
     }
 
     pub fn from_filename(filename: &String) -> Result<&'static Uti, String> {
-        let extension = filename
-            .split('.')
-            .last()
-            .ok_or(format!("File {} seems to have no extension!", filename))?;
+        let extension = Self::extension_from_filename(filename)?;
 
         match extension {
             EXTENSION_HEIC => Ok(&HEIC),
@@ -110,5 +112,12 @@ impl Uti {
             EXTENSION_MOV => Ok(&MOV),
             _ => Err(format!("Unknown extension: {}", extension))
         }
+    }
+
+    fn extension_from_filename(filename: &str) -> Result<&str, String> {
+        filename
+            .split('.')
+            .last()
+            .ok_or(format!("File {} seems to have no extension!", filename))
     }
 }

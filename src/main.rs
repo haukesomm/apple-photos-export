@@ -1,7 +1,11 @@
 use clap::{Args, Parser, Subcommand};
+use crate::uti::Uti;
 
 mod changelog;
-
+mod model;
+mod uti;
+mod util;
+mod db;
 
 /// Export photos from the macOS Photos library, organized by album and/or date.
 #[derive(Parser, Debug)]

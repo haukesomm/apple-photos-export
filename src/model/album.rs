@@ -1,31 +1,27 @@
+use crate::foundation::macros::value_enum;
+
 /// Represents the kind of album in the album hierarchy of the Photos app.
-pub struct Kind {
-    
-    /// ID used in the database.
-    pub id: i32,
+value_enum! {
+    AlbumKind: i32 {
+        /// Root album.
+        ///
+        /// This album is not visible to the user and serves only as a common root node for all 
+        /// other albums.
+        ROOT = 3999,
+        
+        /// A user-created folder.
+        ///
+        /// Albums of this type are created whenever the user creates a folder via the Photos app.
+        /// Folder can itself contain both other folders and actual albums.
+        USER_FOLDER = 4000,
+        
+        /// A user-created album.
+        ///
+        /// Albums of this type are the actual albums as the user knows them. They are created 
+        /// whenever an actual album is created via the Photos app.
+        USER_ALBUM = 2,
+    }
 }
-
-impl Kind {
-    
-    /// Root album.
-    /// 
-    /// This album is not visible to the user and serves only as a common root node for all other
-    /// albums.
-    pub const ROOT: Self = Self { id: 3999 };
-    
-    /// A user-created folder.
-    /// 
-    /// Albums of this type are created whenever the user creates a folder via the Photos app.
-    /// Folder can itself contain both other folders and actual albums.
-    pub const USER_FOLDER: Self = Self { id: 4000 };
-    
-    /// A user-created album.
-    /// 
-    /// Albums of this type are the actual albums as the user knows them. They are created whenever
-    /// an actual album is created via the Photos app.
-    pub const USER_ALBUM: Self = Self { id: 2 };
-}
-
 
 /// Represents an album stored in the Photos database.
 pub struct Album {
@@ -33,8 +29,8 @@ pub struct Album {
     /// Unique integer ID used to identify the album in the database.
     pub id: i32,
     
-    /// Album [Kind] representing the internal type of the album.
-    pub kind: Kind,
+    /// Album [AlbumKind] representing the internal type of the album.
+    pub kind: AlbumKind,
     
     /// Optional name of the album.
     /// 
@@ -52,7 +48,4 @@ pub struct Album {
     /// 
     /// This may be used to sort albums by capture date.
     pub start_date: Option<chrono::NaiveDateTime>,
-    
-    /// Stores whether the album has been deleted or not.
-    pub trashed: bool,
 }

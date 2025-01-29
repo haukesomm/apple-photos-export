@@ -1,10 +1,18 @@
-use std::path::PathBuf;
+use std::fs::File;
+use std::io::Write;
 use clap::{Args, Parser, Subcommand};
+use std::path::PathBuf;
+use colored::Colorize;
+use rand::Rng;
+use crate::result::{Result, Error};
 
-mod model;
-mod uti;
-mod util;
 mod db;
+mod foundation;
+mod model;
+mod util;
+mod result;
+mod album_list;
+
 
 /// Export photos from the macOS Photos library, organized by album and/or date.
 #[derive(Parser, Debug)]
@@ -16,7 +24,6 @@ mod db;
         https://github.com/haukesomm/apple-photos-export/blob/main/CHANGELOG.md"
 )]
 struct Arguments {
-
     // Path to the Photos library
     library_path: String,
 
@@ -26,7 +33,6 @@ struct Arguments {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-
     /// Print the library version
     Version,
 
@@ -34,12 +40,11 @@ enum Commands {
     ListAlbums,
 
     /// Export assets from the library to a given location
-    Export(ExportArgs)
+    Export(ExportArgs),
 }
 
 #[derive(Args, Debug)]
 pub struct ExportArgs {
-
     /// Path to the Photos library
     //library_path: String,
 
@@ -59,11 +64,13 @@ pub struct ExportArgs {
     year_month_album: bool,
 
     /// Include assets in the albums matching the given ids
-    #[arg(short = 'i', long = "include-albums", group = "ids", num_args = 0.., value_delimiter = ' ')]
+    #[arg(short = 'i', long = "include-albums", group = "ids", num_args = 0.., value_delimiter = ' '
+    )]
     include: Option<Vec<i32>>,
 
     /// Exclude assets in the albums matching the given ids
-    #[arg(short = 'x', long = "exclude-albums", group = "ids", num_args = 1.., value_delimiter = ' ')]
+    #[arg(short = 'x', long = "exclude-albums", group = "ids", num_args = 1.., value_delimiter = ' '
+    )]
     exclude: Option<Vec<i32>>,
 
     /// Include hidden assets
@@ -99,17 +106,63 @@ pub struct ExportArgs {
 fn main() {
     let args = Arguments::parse();
 
-    match args.command {
-        Commands::Version => {
-            let library = model::Library::new(PathBuf::from(args.library_path));
-            let conn = rusqlite::Connection::open_with_flags(
-                library.db_path(), 
-                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY
-            ).unwrap();
-            let version = db::get_version_number(&conn).unwrap();
-            let version_range = db::VersionRange::from_version_number(version).unwrap();
-            println!("Library version: {} ({})", version, version_range.description)
-        },
-        _ => unimplemented!()
+    let library_path = model::Library::new(PathBuf::from(args.library_path)).db_path();
+
+    run_with_result_handling(|| {
+        match args.command {
+            Commands::Version => {
+                let version = db::with_connection(&library_path, db::get_version_number)?;
+
+                let version_range = db::VersionRange::from_version_number(version)?;
+                println!("Library version: {} ({})", version, version_range.description)
+            }
+            Commands::ListAlbums => {
+                let albums = db::with_connection(&library_path, db::get_all_albums)?;
+                album_list::print_album_tree(&albums)?
+            }
+            _ => unimplemented!()
+        }
+
+        Ok::<_, Error>(())
+    })
+}
+
+
+/// Run the given function and handle any errors that occur.
+/// 
+/// Errors are saved to a log file and a message is printed to the console.
+// TODO Return an exit code the app should return
+fn run_with_result_handling<F, R, E>(function: F)
+where
+    F: Fn() -> std::result::Result<R, E>,
+    E: ToString
+{
+    if let Err(e) = function() {
+        let err_log_file = write_error_log(&e.to_string())
+            .unwrap_or_else(|e| panic!("Unable to write error log: {}", e));
+
+        eprintln!("{}", "One or more errors occurred executing the given command!".red());
+        
+        let logfile_msg = format!("For more information, see the error log at '{}'", err_log_file);
+        eprintln!("{}", logfile_msg.bright_red());
     }
+}
+
+/// Writes the given log string to a file and returns the filename.
+fn write_error_log(log: &str) -> std::result::Result<String, String> {
+    let random_suffix: String = rand::thread_rng()
+        .sample_iter(&rand::distributions::Alphanumeric)
+        .take(8)
+        .map(char::from)
+        .collect();
+
+    let filename = format!("apple-photos-export-{}.log", random_suffix);
+
+    let mut report = File::create(&filename)
+        .map_err(|e| format!("Unable to create error log: {}", e))?;
+
+    report.write_all(log.as_bytes())
+        .map_err(|e| format!("Unable to write to error log: {}", e))?;
+
+    Ok(filename)
 }

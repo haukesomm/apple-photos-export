@@ -1,5 +1,5 @@
 use crate::model::album::Album;
-use crate::uti::Uti;
+use crate::foundation::Uti;
 
 /// Represents an asset in the Photos library.
 /// 

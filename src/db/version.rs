@@ -43,6 +43,9 @@ version_ranges! {
     SEQUOIA(18000, 18999, "Photos 10.0, macOS 15 Sequoia")
 }
 
+/// The currently supported version range
+pub const CURRENTLY_SUPPORTED_VERSION: VersionRange = VersionRange::SEQUOIA;
+
 
 /// Gets the binary encoded version plist from the Photos library database.
 /// 
@@ -58,7 +61,7 @@ fn get_binary_version_plist(connection: &rusqlite::Connection) -> rusqlite::Resu
 /// 
 /// Based on this version number, the version range of the database can be determined using the
 /// `VersionRange` struct.
-pub fn get_version_number(connection: &rusqlite::Connection) -> Result<u64, String> {
+pub fn get_version_number(connection: &rusqlite::Connection) -> crate::Result<u64> {
     let binary_version_plist = get_binary_version_plist(connection).map_err(|e| {
         format!(
             "Unable to get version plist from database: {}",

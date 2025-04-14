@@ -1,6 +1,5 @@
-use crate::model::album::{Album, AlbumKind};
+use crate::model::album::{Album};
 use std::collections::HashMap;
-use std::fmt::Display;
 use colored::Colorize;
 
 /// Prints the given list of albums as a tree structure to the console.
@@ -17,7 +16,7 @@ pub fn print_album_tree(albums: &Vec<Album>) -> crate::Result<()> {
 fn build_tree(albums: &Vec<Album>) -> crate::Result<ascii_tree::Tree> {
     let root = albums
         .iter()
-        .find(|a| a.kind == AlbumKind::ROOT)
+        .find(|a| a.is_root_album())
         .ok_or("Library does not contain a root album!")?;
 
     let mut albums_by_parent: HashMap<i32, Vec<&Album>> = HashMap::new();
@@ -61,7 +60,7 @@ fn format_album(album: &Album) -> String {
         }
     ).dimmed();
 
-    let name = if album.kind == AlbumKind::ROOT {
+    let name = if album.is_root_album() {
         "<root>".magenta().to_string()
     } else {
         album.name.clone().unwrap_or(String::from("<no name>"))

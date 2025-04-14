@@ -1,4 +1,3 @@
-use crate::model::album::Album;
 use crate::foundation::Uti;
 
 /// Represents an asset in the Photos library.
@@ -8,7 +7,7 @@ use crate::foundation::Uti;
 /// export process.
 pub struct Asset {
     
-    /// The primary key of the asset in the database.
+    /// Internal id of the asset in the Photos database
     pub id: i32,
     
     /// The UUID of the asset.
@@ -35,9 +34,6 @@ pub struct Asset {
     /// Date and time when the asset was created.
     pub datetime: chrono::NaiveDateTime,
     
-    /// Describes whether the asset has been added to the favorites.
-    pub favorite: bool,
-    
     /// Describes whether the asset is hidden.
     pub hidden: bool,
     
@@ -47,8 +43,6 @@ pub struct Asset {
     /// Describes whether the asset has been adjusted, i.e. edited.
     pub has_adjustments: bool,
     
-    /// List of albums the asset is part of.
-    /// 
-    /// This list is empty if the asset is not part of any album.
-    pub album: Vec<Album>,
+    /// List of ids of the albums the asset is part of.
+    pub album_ids: Vec<i32>,
 }

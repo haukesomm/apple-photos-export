@@ -42,13 +42,36 @@ macro_rules! uti_constants {
             )*
 
             /// Determines the UTI from the given identifier.
-            /// 
+            ///
             /// > **Note**: The identifier is _not_ the compact identifier, but the full identifier
             /// > of the UTI!
+            // FIXME: Unreachable occurs because JPEG files have the same identifier but different 
+            // possible file extensions (.jpeg and.jpg). When using this function, the first match 
+            // is  returned. This is okay as long as the Uti obtained via this function is only used
+            // to determine the derivate's file suffix.
+            #[allow(unreachable_patterns)]
             pub fn from_id(id: &str) -> Result<Self, String> {
                 match id {
                     $($id => Ok(Self::$name),)*
                     _ => Err(format!("Cannot determine UTI (unknown ID): {}", id))
+                }
+            }
+            
+            /// Determines the UTI from the given _compact_ identifier and a file extension.
+            ///
+            /// > **Note**: The identifier is _not_ the regular string-based identifier, but 
+            /// > _usually_ a short, integer-based identifier!
+            pub fn from_cid_and_filename(cid: &str, filename: &str) -> Result<Self, String> {
+                use crate::util::ExtractFileExtension;
+                let extension = filename.file_extension()?;
+                
+                match (cid, extension.as_str()) {
+                    $(($cid, $ext) => Ok(Self::$name),)*
+                    _ => Err(format!(
+                        "Cannot determine UTI (unknown CID and file extension combination): {}, {}", 
+                        cid,
+                        extension
+                    ))
                 }
             }
 
@@ -75,6 +98,7 @@ const DERIVATE_SUFFIX_VID: &'static str = "_2_0_a";
 
 uti_constants! {
     JPEG("public.jpeg", "1", "jpeg", DERIVATE_SUFFIX_IMG),
+    JPG("public.jpeg", "1", "jpg", DERIVATE_SUFFIX_IMG),
     HEIC("public.heic", "3", "heic", DERIVATE_SUFFIX_IMG),
     PNG("public.png", "6", "png", DERIVATE_SUFFIX_IMG),
     GIF("com.compuserve.gif", "7", "gif", DERIVATE_SUFFIX_IMG),

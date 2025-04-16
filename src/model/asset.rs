@@ -19,12 +19,6 @@ pub struct Asset {
     /// The filename of the asset.
     pub filename: String,
     
-    /// The original UTI of the asset.
-    /// 
-    /// The original is the UTI of the _unmodified original_ asset.
-    /// The UTI of the derivative asset is stored in `derivate_uti`.
-    pub original_uti: Uti,
-    
     /// The UTI of the derived asset (e.g. an edited version of the original asset).
     /// 
     /// The derivate_uti is the same as the original_uti if the asset is not a derivative.

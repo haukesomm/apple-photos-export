@@ -19,16 +19,6 @@ pub fn get_exportable_assets(conn: &rusqlite::Connection) -> crate::Result<Vec<A
                 uuid: row.get("UUID")?,
                 dir: row.get("DIR")?,
                 filename: row.get("FILENAME")?,
-                original_uti: {
-                    let uti: Option<String> = row.get("COMPACT_UTI")?;
-                    let filename: String = row.get("FILENAME")?;
-                    match uti {
-                        Some(id) => Uti::from_cid_and_filename(id.as_str(), filename.as_str()),
-                        // Fallback for offline libraries as the compact uti is not available
-                        // in that case. It should work but is not as accurate as the second one.
-                        None => Uti::from_filename(filename.as_str()),
-                    }?
-                },
                 derivate_uti: { 
                     let uti_name: String = row.get("UTI")?;
                     Uti::from_id(uti_name.as_str())?

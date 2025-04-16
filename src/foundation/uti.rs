@@ -13,12 +13,6 @@
 /// as struct-level methods.
 pub struct Uti {
     
-    /// Identifier of the UTI.
-    pub id: &'static str,
-    
-    /// Compact identifier of the UTI. Typically. but not always, a number.
-    pub cid: &'static str,
-    
     /// File extension associated with the UTI.
     pub ext: &'static str,
     
@@ -35,54 +29,20 @@ pub struct Uti {
 ///This way, it is not necessary to manually define the getter methods for each UTI and keep them in
 /// sync with the constants.
 macro_rules! uti_constants {
-    ($($name:ident($id:expr, $cid:expr, $ext:expr, $suffix:expr)),+) => {
+    ($($name:ident($id:expr, $ext:expr, $suffix:expr)),+) => {
         impl Uti {
             $(
-            pub const $name:Self = Self { id: $id, cid: $cid, ext: $ext, derivate_suffix: $suffix };
+            pub const $name:Self = Self { ext: $ext, derivate_suffix: $suffix };
             )*
 
             /// Determines the UTI from the given identifier.
             ///
             /// > **Note**: The identifier is _not_ the compact identifier, but the full identifier
             /// > of the UTI!
-            // FIXME: Unreachable occurs because JPEG files have the same identifier but different 
-            // possible file extensions (.jpeg and.jpg). When using this function, the first match 
-            // is  returned. This is okay as long as the Uti obtained via this function is only used
-            // to determine the derivate's file suffix.
-            #[allow(unreachable_patterns)]
             pub fn from_id(id: &str) -> Result<Self, String> {
                 match id {
                     $($id => Ok(Self::$name),)*
                     _ => Err(format!("Cannot determine UTI (unknown ID): {}", id))
-                }
-            }
-            
-            /// Determines the UTI from the given _compact_ identifier and a file extension.
-            ///
-            /// > **Note**: The identifier is _not_ the regular string-based identifier, but 
-            /// > _usually_ a short, integer-based identifier!
-            pub fn from_cid_and_filename(cid: &str, filename: &str) -> Result<Self, String> {
-                use crate::util::ExtractFileExtension;
-                let extension = filename.file_extension()?;
-                
-                match (cid, extension.as_str()) {
-                    $(($cid, $ext) => Ok(Self::$name),)*
-                    _ => Err(format!(
-                        "Cannot determine UTI (unknown CID and file extension combination): {}, {}", 
-                        cid,
-                        extension
-                    ))
-                }
-            }
-
-            /// Determines the UTI from the given file extension.
-            pub  fn from_filename(filename: &str) -> Result<Self, String> {
-                use crate::util::ExtractFileExtension;
-                let extension = filename.file_extension()?;
-
-                match extension.as_str() {
-                    $($ext => Ok(Self::$name),)*
-                    _ => Err(format!("Cannot determine UTI (unknown file extension): {}", filename))
                 }
             }
          }
@@ -97,14 +57,13 @@ const DERIVATE_SUFFIX_IMG: &'static str = "_1_201_a";
 const DERIVATE_SUFFIX_VID: &'static str = "_2_0_a";
 
 uti_constants! {
-    JPEG("public.jpeg", "1", "jpeg", DERIVATE_SUFFIX_IMG),
-    JPG("public.jpeg", "1", "jpg", DERIVATE_SUFFIX_IMG),
-    HEIC("public.heic", "3", "heic", DERIVATE_SUFFIX_IMG),
-    PNG("public.png", "6", "png", DERIVATE_SUFFIX_IMG),
-    GIF("com.compuserve.gif", "7", "gif", DERIVATE_SUFFIX_IMG),
-    DNG("com.adobe.raw-image", "9", "dng", DERIVATE_SUFFIX_IMG),
-    RAF("com.fuji.raw-image", "21", "raf", DERIVATE_SUFFIX_IMG),
-    MOV("com.apple.quicktime-movie", "23", "mov", DERIVATE_SUFFIX_VID),
-    MP4("public.mpeg-4", "24", "mp4", DERIVATE_SUFFIX_VID),
-    BMP("com.microsoft.bmp", "_com.microsoft.bmp", "bmp", DERIVATE_SUFFIX_IMG)
+    JPEG("public.jpeg", "jpeg", DERIVATE_SUFFIX_IMG),
+    HEIC("public.heic", "heic", DERIVATE_SUFFIX_IMG),
+    PNG("public.png", "png", DERIVATE_SUFFIX_IMG),
+    GIF("com.compuserve.gif", "gif", DERIVATE_SUFFIX_IMG),
+    DNG("com.adobe.raw-image", "dng", DERIVATE_SUFFIX_IMG),
+    RAF("com.fuji.raw-image", "raf", DERIVATE_SUFFIX_IMG),
+    MOV("com.apple.quicktime-movie", "mov", DERIVATE_SUFFIX_VID),
+    MP4("public.mpeg-4", "mp4", DERIVATE_SUFFIX_VID),
+    BMP("com.microsoft.bmp", "bmp", DERIVATE_SUFFIX_IMG)
 }

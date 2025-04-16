@@ -12,7 +12,6 @@ use crate::export::modifiers::AlbumFilterMode;
 mod db;
 mod foundation;
 mod model;
-mod util;
 mod result;
 mod album_list;
 mod export;

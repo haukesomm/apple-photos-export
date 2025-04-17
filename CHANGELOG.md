@@ -2,9 +2,17 @@
 
 The following is a list of changes made to the project in reverse chronological order.
 
-## `0.5.0`
+## `1.0.0-SNAPSHOT`
 
-(no changes yet)
+- Complete rewrite from the ground up
+- The library path is now supplied _before_ the subcommand in the CLI: 
+`apple-photos-export <LIBRARY_PATH> <SUBCOMMAND> [FLAGS]`
+- The `changelog` subcommand has been removed as the changelog can easily be viewed on GitHub
+
+### Technical details
+
+- `diesel` has once again been replaced with `rusqlite` for database access
+  - This is due to the simplicity of the database schema and the fact that `diesel` was overkill for this project
 
 ## `0.4.1`
 

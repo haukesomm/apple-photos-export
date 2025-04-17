@@ -1,7 +1,6 @@
+use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
-use crate::uti::Uti;
 
-mod changelog;
 mod model;
 mod uti;
 mod util;
@@ -9,8 +8,17 @@ mod db;
 
 /// Export photos from the macOS Photos library, organized by album and/or date.
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(
+    version, 
+    about, 
+    long_about = None, 
+    after_help = "Have a look at the changelog for the latest changes:\n\
+        https://github.com/haukesomm/apple-photos-export/blob/main/CHANGELOG.md"
+)]
 struct Arguments {
+
+    // Path to the Photos library
+    library_path: String,
 
     #[command(subcommand)]
     command: Commands,
@@ -19,28 +27,21 @@ struct Arguments {
 #[derive(Subcommand, Debug)]
 enum Commands {
 
-    /// Print the changelog
-    Changelog,
+    /// Print the library version
+    Version,
 
     /// List all albums in the library
-    ListAlbums(ListAlbumsArgs),
+    ListAlbums,
 
     /// Export assets from the library to a given location
     Export(ExportArgs)
 }
 
 #[derive(Args, Debug)]
-pub struct ListAlbumsArgs {
-
-    /// Path to the Photos library
-    library_path: String,
-}
-
-#[derive(Args, Debug)]
 pub struct ExportArgs {
 
     /// Path to the Photos library
-    library_path: String,
+    //library_path: String,
 
     /// Output directory
     output_dir: String,
@@ -96,5 +97,19 @@ pub struct ExportArgs {
 
 
 fn main() {
-    //
+    let args = Arguments::parse();
+
+    match args.command {
+        Commands::Version => {
+            let library = model::Library::new(PathBuf::from(args.library_path));
+            let conn = rusqlite::Connection::open_with_flags(
+                library.db_path(), 
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY
+            ).unwrap();
+            let version = db::get_version_number(&conn).unwrap();
+            let version_range = db::VersionRange::from_version_number(version).unwrap();
+            println!("Library version: {} ({})", version, version_range.description)
+        },
+        _ => unimplemented!()
+    }
 }

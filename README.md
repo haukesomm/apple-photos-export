@@ -37,7 +37,7 @@ It is intended for backup purposes and does not modify the library in any way.
 ## Compatibility
 
 > [!NOTE]
-> Currently, each version of this app only works with a sepcific combination of macOS and the Photos app.  
+> Currently, each version of this app only works with a specific combination of macOS and the Photos app.  
 > Backwards compatibility to older versions is planned for future releases.
 
 The following versions of the app are compatible with the following macOS/PhotosLibrary version:
@@ -83,7 +83,7 @@ $ apple-photos-export list-albums <LIBRARY_PATH>
 ### Exporting assets
 
 ```shell
-$ apple-photos-export export [OPTIONS] <LIBRARY_PATH> <OUTPUT_DIR>
+$ apple-photos-export <LIBRARY_PATH> export [OPTIONS] <OUTPUT_DIR>
 ```
 
 <details>
@@ -127,7 +127,7 @@ point.
     - Includes both the original and edited versions of each asset
 
 ```shell
-$ apple-photos-export export <LIBRARY_PATH> <OUTPUT_DIR> -MHrfe
+$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -MHrfe
 ```
 
 ##### Only include assets from a list of specific albums
@@ -136,7 +136,7 @@ $ apple-photos-export export <LIBRARY_PATH> <OUTPUT_DIR> -MHrfe
     - Album IDs can be obtained via the `list-albums` command
 
 ```shell
-$ apple-photos-export export <LIBRARY_PATH> <OUTPUT_DIR> -i 700 701
+$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -i 700 701
 ```
 
 ##### Exclude all assets being in a list of specific albums
@@ -145,7 +145,7 @@ $ apple-photos-export export <LIBRARY_PATH> <OUTPUT_DIR> -i 700 701
     - Album IDs can be obtained via the `list-albums` command
 
 ```shell
-$ apple-photos-export export <LIBRARY_PATH> <OUTPUT_DIR> -x 700 701
+$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -x 700 701
 ```
 
 ##### Export hidden files only
@@ -153,7 +153,7 @@ $ apple-photos-export export <LIBRARY_PATH> <OUTPUT_DIR> -x 700 701
 - Exports all _hidden_ assets
 
 ```shell
-$ apple-photos-export export [library_path] [output_path] --must-be-hidden
+$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> --must-be-hidden
 ```
 
 </details>

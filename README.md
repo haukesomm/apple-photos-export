@@ -11,17 +11,6 @@ It is intended for backup purposes and does not modify the library in any way.
 > guaranteed to work with future versions of the Photos app or at all. Use it at your own risk and always keep a backup
 > of your library.
 
-> [!NOTE]
-> This project is currently undergoing a huge rewrite in order to reduce the footprint of the app, to make it more 
-> Rust-like and to provide a solid foundation for upcoming releases.
-> 
-> As I only have limited time to work on side projects, this may take some time.
-> The project is not dead, however!
-> 
-> In the meantime, I hope this tool continues to be as useful as possible.
-> 
-> Cheers!
-
 ## Highlights
 
 - Lists all albums of the library as an ascii tree

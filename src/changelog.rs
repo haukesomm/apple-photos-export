@@ -7,7 +7,6 @@ use termimad::crossterm::event::{Event, KeyEvent};
 use termimad::crossterm::terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
 
 use crate::changelog;
-use crate::result::PhotosExportResult;
 
 const CHANGELOG: &str = include_str!("../CHANGELOG.md");
 
@@ -15,7 +14,7 @@ fn get_view_area() -> Area {
     Area::full_screen()
 }
 
-pub fn print_changelog() -> PhotosExportResult<()> {
+pub fn print_changelog() -> Result<(), termimad::Error> {
     let mut w = stdout(); // we could also have used stderr
 
     queue!(w, EnterAlternateScreen)?;

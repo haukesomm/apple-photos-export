@@ -92,9 +92,9 @@ pub struct ExportArgs {
     #[arg(short = 'e', long = "include-edited", group = "edited")]
     include_edited: bool,
 
-    /// Always export the edited version of an asset if available
-    #[arg(short = 'E', long = "only-edited", group = "edited")]
-    only_edited: bool,
+    /// Prefer the edited version of the asset if available and fall back to the original otherwise
+    #[arg(short = 'E', long = "prefer-edited", group = "edited")]
+    prefer_edited: bool,
 
     /// Dry run
     #[arg(short = 'd', long = "dry-run")]
@@ -155,8 +155,8 @@ fn main() {
                     use export::builder::TasksBuilder;
                     if export_args.include_edited {
                         TasksBuilder::for_originals_and_derivates(config)
-                    } else if export_args.only_edited {
-                        TasksBuilder::for_derivates(config)
+                    } else if export_args.prefer_edited {
+                        TasksBuilder::for_derivates_with_fallback(config)
                     } else {
                         TasksBuilder::for_originals(config)
                     }

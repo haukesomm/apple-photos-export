@@ -61,10 +61,11 @@ impl<'a> TasksBuilder<'a> {
         }
     }
 
-    /// Creates a new `ExportTasksBuilder` that includes all derivatives but no originals.
-    pub fn for_derivates(config: TasksBuilderConfig<'a>) -> Self {
+    /// Creates a new `ExportTasksBuilder` that includes all derivatives and falls back to the
+    /// original version of the asset if no derivate exists.
+    pub fn for_derivates_with_fallback(config: TasksBuilderConfig<'a>) -> Self {
         Self {
-            tasks: Box::from(Self::_derivates_source(config.library, config.assets)),
+            tasks: Box::from(Self::_derivates_source_with_fallback(config.library, config.assets)),
             mappers: vec![],
             output_dir: config.output_dir.into(),
         }
@@ -95,6 +96,19 @@ impl<'a> TasksBuilder<'a> {
         assets: Vec<Asset>,
     ) -> impl Iterator<Item = ExportTask> + 'a {
         assets.into_iter().filter_map(move |a| ExportTask::for_derivate_from(lib, a))
+    }
+    
+    fn _derivates_source_with_fallback(
+        lib: &'a Library,
+        assets: Vec<Asset>,
+    ) -> impl Iterator<Item = ExportTask> + 'a {
+        assets.into_iter().filter_map(|a| {
+            if a.has_adjustments {
+                ExportTask::for_derivate_from(lib, a)
+            } else {
+                Some(ExportTask::for_original_from(lib, a))
+            }
+        })
     }
     
 

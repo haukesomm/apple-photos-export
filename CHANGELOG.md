@@ -11,15 +11,16 @@ The following is a list of changes made to the project in reverse chronological 
 
 Updated arguments/flags:
 
-| old                                       | new                           | comment            |
-|-------------------------------------------|-------------------------------|--------------------|
-| `-H/--include-hidden`, `--must-be-hidden` | `-v/--visible`                | have been combined |
-| `-a/--by-album`                           | `-l/--by-album`               | has been renamed   |
-| `-i/--include-albums`                     | `-a/--include-by-album`       | has been renamed   |
-| `-x/--exclude-albums`                     | `-A/--exclude-by-album`       | has been renamed   |
-| `--by-album`                              | `--group-by-album`            | has been renamed   |
-| `--by-year-month`                         | `--group-by-year-month`       | has been renamed   |
-| `--by-year-month-album`                   | `--group-by-year-month-album` | has been renamed   |
+| old                                       | new                           | comment                                                         |
+|-------------------------------------------|-------------------------------|-----------------------------------------------------------------|
+| `-H/--include-hidden`, `--must-be-hidden` | `-v/--visible`                | have been combined                                              |
+| `-a/--by-album`                           | `-l/--by-album`               | has been renamed                                                |
+| `-i/--include-albums`                     | `-a/--include-by-album`       | has been renamed                                                |
+| `-x/--exclude-albums`                     | `-A/--exclude-by-album`       | has been renamed                                                |
+| `--by-album`                              | `--group-by-album`            | has been renamed                                                |
+| `--by-year-month`                         | `--group-by-year-month`       | has been renamed                                                |
+| `--by-year-month-album`                   | `--group-by-year-month-album` | has been renamed                                                |
+| `-E/--only-edited`                        | `-E/--prefer-edited`          | __behavior has changed__ <br> see `--help` for more information |
 
 ### Technical details
 

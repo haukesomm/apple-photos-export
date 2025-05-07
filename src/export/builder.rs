@@ -1,32 +1,28 @@
 use crate::export::{ExportAssetMetadata, ExportAssetRelation, ExportTask};
-use crate::model::album::Album;
 use crate::model::{Asset, Library};
-use std::collections::HashMap;
 use std::path::PathBuf;
-
+use crate::export::task_mapper::MapExportTask;
 
 /// Configuration for the `TasksBuilder`, containing references to the library, assets, albums,
 /// and the output directory.
 pub struct TasksBuilderConfig<'a> {
     pub library: &'a Library,
-    pub assets: &'a Vec<Asset>,
-    pub albums: &'a HashMap<i32, Album>,
+    pub assets: Vec<Asset>,
     pub output_dir: PathBuf,
 }
 
 impl<'a> TasksBuilderConfig<'a> {
+    
     /// Creates a new `TasksBuilderConfig` with the specified library, assets, albums, and output
     /// directory.
     pub fn new<P: Into<PathBuf>>(
         library: &'a Library,
-        assets: &'a Vec<Asset>,
-        albums: &'a HashMap<i32, Album>,
+        assets: Vec<Asset>,
         output_dir: P,
     ) -> Self {
         Self {
             library,
             assets,
-            albums,
             output_dir: output_dir.into(),
         }
     }
@@ -49,9 +45,8 @@ impl<'a> TasksBuilderConfig<'a> {
 /// until the `build` method is called. Once `build` has been called, the builder cannot be
 /// used again.
 pub struct TasksBuilder<'a> {
-    albums: &'a HashMap<i32, Album>,
-    tasks: Box<dyn Iterator<Item = (&'a Asset, ExportTask)> + 'a>,
-    modifiers: Vec<Box<dyn Fn(&Asset, &HashMap<i32, Album>, ExportTask) -> Option<ExportTask>>>,
+    tasks: Box<dyn Iterator<Item = ExportTask> + 'a>,
+    mappers: Vec<Box<dyn MapExportTask + 'a>>,
     output_dir: PathBuf,
 }
 
@@ -60,9 +55,8 @@ impl<'a> TasksBuilder<'a> {
     /// Creates a new `ExportTasksBuilder` that includes all original assets but no derivatives.
     pub fn for_originals(config: TasksBuilderConfig<'a>) -> Self {
         Self {
-            albums: config.albums,
             tasks: Box::from(Self::_originals_source(config.library, config.assets)),
-            modifiers: vec![],
+            mappers: vec![],
             output_dir: config.output_dir.into(),
         }
     }
@@ -70,9 +64,8 @@ impl<'a> TasksBuilder<'a> {
     /// Creates a new `ExportTasksBuilder` that includes all derivatives but no originals.
     pub fn for_derivates(config: TasksBuilderConfig<'a>) -> Self {
         Self {
-            albums: config.albums,
             tasks: Box::from(Self::_derivates_source(config.library, config.assets)),
-            modifiers: vec![],
+            mappers: vec![],
             output_dir: config.output_dir.into(),
         }
     }
@@ -80,62 +73,30 @@ impl<'a> TasksBuilder<'a> {
     /// Creates a new `ExportTasksBuilder` that includes both original and derivative assets.
     pub fn for_originals_and_derivates(config: TasksBuilderConfig<'a>) -> Self {
         Self {
-            albums: config.albums,
             tasks: Box::from(
-                Self::_originals_source(config.library, config.assets)
+                Self::_originals_source(config.library, config.assets.clone())
                     .chain(Self::_derivates_source(config.library, config.assets)),
             ),
-            modifiers: vec![],
+            mappers: vec![],
             output_dir: config.output_dir.into(),
         }
     }
+    
 
     fn _originals_source(
         lib: &'a Library,
-        assets: &'a Vec<Asset>,
-    ) -> impl Iterator<Item = (&'a Asset, ExportTask)> {
-        assets.iter().map(move |a| {
-            let task = ExportTask {
-                source: lib.get_asset_original_path(a),
-                destination: PathBuf::from(&a.filename),
-                meta: ExportAssetMetadata {
-                    asset_id: a.id,
-                    derivate: false,
-                    relation: ExportAssetRelation::None,
-                },
-            };
-            (a, task)
-        })
+        assets: Vec<Asset>,
+    ) -> impl Iterator<Item = ExportTask> + 'a {
+        assets.into_iter().map(move |a| ExportTask::for_original_from(lib, a))
     }
 
     fn _derivates_source(
         lib: &'a Library,
-        assets: &'a Vec<Asset>,
-    ) -> impl Iterator<Item = (&'a Asset, ExportTask)> {
-        assets.iter().filter_map(move |a| {
-            let path = lib.get_asset_derivate_path(a)?;
-            
-            if !path.exists() {
-                return None;
-            }
-            
-            let mut output_filename = PathBuf::from(&a.filename);
-            output_filename.set_extension(a.derivate_uti.ext);
-            
-            Some((
-                a,
-                ExportTask {
-                    source: path,
-                    destination: output_filename,
-                    meta: ExportAssetMetadata {
-                        asset_id: a.id,
-                        derivate: true,
-                        relation: ExportAssetRelation::None,
-                    }
-                },
-            ))
-        })
+        assets: Vec<Asset>,
+    ) -> impl Iterator<Item = ExportTask> + 'a {
+        assets.into_iter().filter_map(move |a| ExportTask::for_derivate_from(lib, a))
     }
+    
 
     /// Configures the builder to create a dedicated export task for each album an asset is part of.
     ///
@@ -159,11 +120,11 @@ impl<'a> TasksBuilder<'a> {
         // Split up export tasks of assets that are part of one or more albums.
         // This way they can later be properly handled and for example be exported to multiple
         // destinations
-        let decorated_iter = iter.flat_map(|(asset, task)| {
-            if asset.album_ids.is_empty() {
-                vec![(asset, task)]
+        let decorated_iter = iter.flat_map(|task| {
+            if task.asset.album_ids.is_empty() {
+                vec![task]
             } else {
-                asset
+                task.asset
                     .album_ids
                     .iter()
                     .enumerate()
@@ -175,15 +136,14 @@ impl<'a> TasksBuilder<'a> {
                                     None
                                 } else {
                                     // unwrap may be called here as there is at least one album id
-                                    Some(asset.album_ids.first().unwrap().clone())
+                                    Some(task.asset.album_ids.first().unwrap().clone())
                                 },
                             },
                             ..task.meta
                         },
                         ..task.clone()
                     })
-                    .map(|t| (asset, t))
-                    .collect::<Vec<(&Asset, ExportTask)>>()
+                    .collect::<Vec<ExportTask>>()
             }
         });
 
@@ -191,11 +151,8 @@ impl<'a> TasksBuilder<'a> {
     }
 
     /// Adds a modifier to the list of modifiers to be applied to the export tasks.
-    pub fn add_modifier<M>(&mut self, modifier: M)
-    where
-        M: Fn(&Asset, &HashMap<i32, Album>, ExportTask) -> Option<ExportTask> + 'static
-    {
-        self.modifiers.push(Box::new(modifier));
+    pub fn add_mapper<M: MapExportTask + 'a>(&mut self, mapper: M) {
+        self.mappers.push(Box::new(mapper));
     }
 
     /// Builds the list of export tasks by creating an `ExportTask` for each asset and
@@ -204,9 +161,9 @@ impl<'a> TasksBuilder<'a> {
     /// Once this method has been called, the builder cannot be used again.
     pub fn build(self) -> Vec<ExportTask> {
         let mut tasks: Vec<ExportTask> = self.tasks
-            .filter_map(|(asset, task)| {
-                self.modifiers.iter().fold(Some(task), |task, modify| {
-                    task.map(|t| modify(asset, self.albums, t)).flatten()
+            .filter_map(|task| {
+                self.mappers.iter().fold(Some(task), |task, mapper| {
+                    task.map(|t| mapper.map(t)).flatten()
                 })
             })
             .map(|task| ExportTask {
@@ -215,7 +172,7 @@ impl<'a> TasksBuilder<'a> {
             })
             .collect();
         
-        tasks.sort_by_key(|t| t.meta.asset_id);
+        tasks.sort_by_key(|t| t.asset.id);
         
         tasks
     }

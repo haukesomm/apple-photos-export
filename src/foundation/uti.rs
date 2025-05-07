@@ -11,6 +11,7 @@
 /// 
 /// Additionally, methods to determine the UTI from a file extension or an identifier are provided
 /// as struct-level methods.
+#[derive(Clone)]
 pub struct Uti {
     
     /// File extension associated with the UTI.

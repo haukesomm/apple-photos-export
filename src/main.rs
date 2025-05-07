@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 use crate::export::{ExportEngine, ExportMetadata};
-use crate::export::modifiers::AlbumFilterMode;
+use crate::export::task_mapper::AlbumFilterMode;
 
 mod db;
 mod foundation;
@@ -142,11 +142,12 @@ fn main() {
                     ))
                 })?;
                 
+                let exportable_asset_count = exportable_assets.len();
+                
                 
                 let config = export::builder::TasksBuilderConfig::new(
                     &library,
-                    &exportable_assets,
-                    &albums,
+                    exportable_assets,
                     &export_args.output_dir,
                 );
                 
@@ -161,46 +162,44 @@ fn main() {
                     }
                 };
                 
-                if export_args.restore_original_filenames {
-                    builder.add_modifier(export::modifiers::restore_original_filename)
+                if export_args.include_edited {
+                    builder.add_mapper(export::task_mapper::MarkOriginalsAndDerivates::new())
                 }
                 
-                if export_args.include_edited {
-                    builder.add_modifier(export::modifiers::mark_originals_and_derivates);
+                if export_args.restore_original_filenames {
+                    builder.add_mapper(export::task_mapper::RestoreOriginalFilenames::new())
                 }
-
                 
                 if export_args.album || export_args.year_month_album {
                     builder.create_per_album_tasks();
-                    builder.add_modifier(
-                        if export_args.flatten_albums {
-                            export::modifiers::structure_by_album
-                        } else {
-                            export::modifiers::structure_by_album_recursively
-                        }
-                    );
+                    
+                    if export_args.flatten_albums {
+                        builder.add_mapper(export::task_mapper::GroupByAlbum::flat(&albums))
+                    } else {
+                        builder.add_mapper(export::task_mapper::GroupByAlbum::recursive(&albums))
+                    }
                 }
 
                 if export_args.year_month_album {
-                    builder.add_modifier(export::modifiers::prefix_with_album_year_and_month)
+                    builder.add_mapper(export::task_mapper::GroupByYearMonthAndAlbum::new(&albums))
                 }
                 
                 if export_args.year_month {
-                    builder.add_modifier(export::modifiers::prefix_with_asset_year_and_month)
+                    builder.add_mapper(export::task_mapper::GroupByYearAndMonth::new())
                 }
                 
                 if let Some(ids) = &export_args.include_by_album {
-                    builder.add_modifier(
-                        export::modifiers::create_album_filtering_modifier(
-                            ids.clone(),
+                    builder.add_mapper(
+                        export::task_mapper::FilterByAlbumId::new(
+                            ids.clone(), 
                             AlbumFilterMode::Include
                         )
                     );
                 }
 
                 if let Some(ids) = &export_args.exclude_by_album {
-                    builder.add_modifier(
-                        export::modifiers::create_album_filtering_modifier(
+                    builder.add_mapper(
+                        export::task_mapper::FilterByAlbumId::new(
                             ids.clone(),
                             AlbumFilterMode::Exclude
                         )
@@ -208,9 +207,9 @@ fn main() {
                 }
 
                 if export_args.visible {
-                    builder.add_modifier(export::modifiers::exclude_hidden)
+                    builder.add_mapper(export::task_mapper::ExcludeHidden::new())
                 } else {
-                    builder.add_modifier(export::modifiers::prefix_hidden_assets);
+                    builder.add_mapper(export::task_mapper::PrefixHidden::new())
                 }
                 
                 let export_tasks = builder.build();
@@ -225,7 +224,7 @@ fn main() {
                 
                 let export_metadata = ExportMetadata {
                     total_asset_count: asset_count,
-                    exportable_asset_count: exportable_assets.len(),
+                    exportable_asset_count,
                     export_task_count: export_tasks.len()
                 };
                 

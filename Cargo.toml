@@ -11,4 +11,4 @@ colored = "2.1.0"
 plist = "1.7.0"
 rand = "0.8.5"
 rusqlite = { version = "0.33.0", features = ["bundled"] }
-termimad = "0.30.0"
+derive-new = "0.7.0"

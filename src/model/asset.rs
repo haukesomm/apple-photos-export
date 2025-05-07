@@ -5,6 +5,7 @@ use crate::foundation::Uti;
 /// This struct does not reflect the asset table in the Photos library database! Instead, it is
 /// a combined representation of data from multiple tables needed to work with the asset in the
 /// export process.
+#[derive(Clone)]
 pub struct Asset {
     
     /// Internal id of the asset in the Photos database

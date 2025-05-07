@@ -1,4 +1,4 @@
-pub mod modifiers;
+pub mod task_mapper;
 pub mod builder;
 mod engine;
 
@@ -6,7 +6,7 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use colored::Colorize;
 pub use engine::{ExportMetadata, ExportEngine};
-
+use crate::model::{Asset, Library};
 
 /// Represents a special relation an asset may have to another model during the export.
 /// 
@@ -37,17 +37,12 @@ pub enum ExportAssetRelation {
 /// or to determine special steps needed during the export.
 #[derive(Clone)]
 pub struct ExportAssetMetadata {
-    pub asset_id: i32,
     pub derivate: bool,
     pub relation: ExportAssetRelation
 }
 
 impl Display for ExportAssetMetadata {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", format!("#{}", self.asset_id).blue())?;
-        
-        write!(f, ", ")?;
-        
         if self.derivate {
             write!(f, "{}", "derivate".cyan())?;
         } else {
@@ -87,7 +82,46 @@ impl Display for ExportAssetMetadata {
 /// The `destination` must be __relative__!
 #[derive(Clone)]
 pub struct ExportTask {
+    pub asset: Asset,
     pub source: PathBuf,
     pub destination: PathBuf,
     pub meta: ExportAssetMetadata,
+}
+
+impl ExportTask {
+    
+    pub fn for_original_from(lib: &Library, asset: Asset) -> Self {
+        Self {
+            asset: asset.clone(),
+            source: lib.get_asset_original_path(&asset),
+            destination: PathBuf::from(&asset.filename),
+            meta: ExportAssetMetadata {
+                derivate: false,
+                relation: ExportAssetRelation::None,
+            },
+        }
+    }
+
+    pub fn for_derivate_from(lib: &Library, asset: Asset) -> Option<Self> {
+        let path = lib.get_asset_derivate_path(&asset)?;
+
+        if !path.exists() {
+            return None;
+        }
+
+        let mut output_filename = PathBuf::from(&asset.filename);
+        output_filename.set_extension(asset.derivate_uti.ext);
+
+        Some(
+            Self {
+                asset: asset.clone(),
+                source: path,
+                destination: output_filename,
+                meta: ExportAssetMetadata {
+                    derivate: true,
+                    relation: ExportAssetRelation::None,
+                }
+            }
+        )
+    }
 }

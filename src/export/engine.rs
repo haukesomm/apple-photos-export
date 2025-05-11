@@ -2,6 +2,7 @@ use crate::confirmation::{confirmation_prompt, Answer};
 use crate::export::ExportTask;
 use crate::result::Error;
 use colored::Colorize;
+use crate::export::copying::{CopyAsset, CopyAssetViaFs, PretendToCopyAsset};
 
 /// Holds the metadata for the export process, including the total number of assets,
 /// the number of exportable assets, and the number of export tasks.
@@ -20,8 +21,7 @@ pub struct ExportMetadata {
 /// without actually copying any files by creating a new instance of the engine with the
 /// `dry_run` method instead of the `new` method.
 pub struct ExportEngine {
-    copy_function: Box<dyn Fn(&ExportTask) -> Result<(), String>>,
-    on_success: Box<dyn Fn(i32) -> ()>,
+    copy_strategy: Box<dyn CopyAsset>,
 }
 
 impl ExportEngine {
@@ -34,27 +34,9 @@ impl ExportEngine {
     /// Use the `dry_run` method to create a dry-run instance of the engine.
     pub fn new() -> Self {
         ExportEngine {
-            copy_function: Box::new(Self::_copy),
-            on_success: Box::new(|count| println!(
-                "{}", 
-                format!("{} files have successfully been copied.", count).bright_green()
-            )),
+            copy_strategy: Box::new(CopyAssetViaFs::new()),
         }
     }
-    
-    fn _copy(task: &ExportTask) -> Result<(), String> {
-        let dest = &task.destination;
-
-        if let Some(parent) = dest.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| format!("Could not create output folders: {}", e))?
-        }
-
-        std::fs::copy(&task.source, &task.destination)
-            .map(|_| ())
-            .map_err(|e| e.to_string())
-    }
-    
     
     /// Creates a new instance of the export engine that simulates the export process without
     /// actually copying any files.
@@ -62,11 +44,7 @@ impl ExportEngine {
     /// Use the `new` method to create a real instance of the engine that performs the export.
     pub fn dry_run() -> Self {
         ExportEngine {
-            copy_function: Box::new(|_| Ok(())),
-            on_success: Box::new(|count| println!(
-                "{}",
-                format!("Dry-run: {} files would have been copied.", count).magenta()
-            )),
+            copy_strategy: Box::new(PretendToCopyAsset::new()),
         }
     }
     
@@ -119,7 +97,7 @@ impl ExportEngine {
             });
 
         if failures.is_empty() {
-            (self.on_success)(successes);
+            self.copy_strategy.report_success(successes);
             Ok(())
         } else {
             Err(Error::Export(failures))
@@ -135,6 +113,6 @@ impl ExportEngine {
             task.destination.display().to_string().dimmed(),
         );
         
-        (self.copy_function)(&task)
+        self.copy_strategy.copy(&task)
     }
 }

@@ -162,12 +162,12 @@ fn main() {
                     }
                 };
                 
-                if export_args.include_edited {
-                    builder.add_mapper(export::task_mapper::MarkOriginalsAndDerivates::new())
-                }
-                
                 if export_args.restore_original_filenames {
                     builder.add_mapper(export::task_mapper::RestoreOriginalFilenames::new())
+                }
+
+                if export_args.include_edited {
+                    builder.add_mapper(export::task_mapper::MarkOriginalsAndDerivates::new())
                 }
                 
                 if export_args.album || export_args.year_month_album {

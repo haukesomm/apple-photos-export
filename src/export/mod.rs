@@ -1,6 +1,7 @@
 pub mod task_mapper;
 pub mod builder;
 mod engine;
+pub mod copying;
 
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;

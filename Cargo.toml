@@ -5,10 +5,10 @@ edition = "2021"
 
 [dependencies]
 ascii_tree = "0.1.1"
-chrono = "0.4.38"
-clap = { version = "4.5.19", features = ["derive"] }
-colored = "2.1.0"
-plist = "1.7.0"
+chrono = "0.4.41"
+clap = { version = "4.5.38", features = ["derive"] }
+colored = "3.0.0"
+plist = "1.7.1"
 rand = "0.8.5"
 rusqlite = { version = "0.33.0", features = ["bundled"] }
 derive-new = "0.7.0"

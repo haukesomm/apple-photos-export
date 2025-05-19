@@ -7,11 +7,19 @@ use std::path::PathBuf;
 use derive_new::new;
 
 
+/// A trait for mapping export tasks.
+/// 
+/// This trait is used to transform an `ExportTask` into another `ExportTask` or filter it out.
+/// It is used in the export process to apply various transformations to the tasks before they are
+/// executed, e.g. to group them by album, year, or month, or to exclude hidden assets.
+/// 
+/// Upon export, all registered mappers are called in the order they were registered.
 pub trait MapExportTask {
     fn map(&self, task: ExportTask) -> Option<ExportTask>;
 }
 
 
+/// A mapper that excludes hidden assets from the export.
 #[derive(new)]
 pub struct ExcludeHidden;
 
@@ -26,6 +34,7 @@ impl MapExportTask for ExcludeHidden {
 }
 
 
+/// A mapper that prefixes the destination path with "_hidden" for hidden assets.
 #[derive(new)]
 pub struct PrefixHidden;
 
@@ -43,6 +52,8 @@ impl MapExportTask for PrefixHidden {
 }
 
 
+/// A mapper that appends `.original` or `.derivate` to the destination file name based on whether
+/// the asset is a derivative or not.
 #[derive(new)]
 pub struct MarkOriginalsAndDerivates;
 
@@ -69,6 +80,7 @@ impl MapExportTask for MarkOriginalsAndDerivates {
 }
 
 
+/// A mapper that restores the original file name of the asset in the destination path.
 #[derive(new)]
 pub struct RestoreOriginalFilenames;
 
@@ -90,6 +102,7 @@ impl MapExportTask for RestoreOriginalFilenames {
 }
 
 
+/// A mapper that groups assets by album.
 pub struct GroupByAlbum<'a> {
     albums: &'a HashMap<i32, Album>,
     max_depth: u8
@@ -135,6 +148,7 @@ impl<'a> MapExportTask for GroupByAlbum<'a> {
 }
 
 
+/// A mapper that groups assets by year and month.
 #[derive(new)]
 pub struct GroupByYearAndMonth;
 
@@ -152,6 +166,7 @@ impl MapExportTask for GroupByYearAndMonth {
 }
 
 
+/// A mapper that groups assets by year, month, and album.
 #[derive(new)]
 pub struct GroupByYearMonthAndAlbum<'a> {
     albums: &'a HashMap<i32, Album>,
@@ -187,6 +202,7 @@ pub enum AlbumFilterMode {
     Exclude,
 }
 
+/// A mapper that filters assets by album ID.
 #[derive(new)]
 pub struct FilterByAlbumId {
     ids: Vec<i32>,

@@ -240,7 +240,6 @@ fn main() {
 /// Run the given function and handle any errors that occur.
 /// 
 /// Errors are saved to a log file and a message is printed to the console.
-// TODO Return an exit code the app should return
 fn run_with_result_handling<F, R>(function: F)
 where
     F: Fn() -> std::result::Result<R, Error>,

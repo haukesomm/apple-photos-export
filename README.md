@@ -31,11 +31,11 @@ It is intended for backup purposes and does not modify the library in any way.
 
 The following versions of the app are compatible with the following macOS/PhotosLibrary version:
 
-| App version                        | macOS Name | macOS Version   | Photos Version | Notes                                                                                                          |
-|:-----------------------------------|:-----------|:----------------|:---------------|:---------------------------------------------------------------------------------------------------------------|
-| `0.4.0`, `0.4.1`, `1.0.0-snapshot` | Sequoia    | `15`            | `10.0`         |                                                                                                                |
-| `0.3.0`                            | Sonoma     | `14.6`          | `9.0`          | The internal schema of the Photos app has changed, making this release incompatible with other Sonoma releases |
-| `0.2.0`, `0.1.0`, `0.0.1`          | Sonoma     | `14.0` - `14.5` | `9.0 `         |                                                                                                                |
+| App version                                 | macOS Name | macOS Version   | Photos Version | Notes                                                                                                          |
+|:--------------------------------------------|:-----------|:----------------|:---------------|:---------------------------------------------------------------------------------------------------------------|
+| `0.4.0`, `0.4.1`, `1.0.0`, `1.1.0-snapshot` | Sequoia    | `15`            | `10.0`         |                                                                                                                |
+| `0.3.0`                                     | Sonoma     | `14.6`          | `9.0`          | The internal schema of the Photos app has changed, making this release incompatible with other Sonoma releases |
+| `0.2.0`, `0.1.0`, `0.0.1`                   | Sonoma     | `14.0` - `14.5` | `9.0 `         |                                                                                                                |
 
 ## Changelog
 
@@ -75,26 +75,34 @@ $ apple-photos-export list-albums <LIBRARY_PATH>
 $ apple-photos-export <LIBRARY_PATH> export [OPTIONS] <OUTPUT_DIR>
 ```
 
-<details>
-    <summary>Configuration options</summary>
+Export configuration options:
 
 ```
--a, --by-album                       Group assets by album
--m, --by-year-month                  Group assets by year/month
--M, --by-year-month-album            Group assets by year/month/album
--i, --include-albums [<INCLUDE>...]  Include assets in the albums matching the given ids
--x, --exclude-albums <EXCLUDE>...    Exclude assets in the albums matching the given ids
--H, --include-hidden                 Include hidden assets
---must-be-hidden                 Assets must be hidden
--r, --restore-original-filenames     Restore original filenames
--f, --flatten-albums                 Flatten album structure
--e, --include-edited                 Include edited versions of the assets if available
--E, --only-edited                    Always export the edited version of an asset if available
--d, --dry-run                        Dry run
--h, --help                           Print help
+-l, --group-by-album
+        Group assets by album
+-m, --group-by-year-month
+        Group assets by year/month
+-M, --group-by-year-month-album
+        Group assets by year/month/album
+-a, --include-by-album <INCLUDE_BY_ALBUM>...
+        Include assets in the albums matching the given ids
+-A, --exclude-by-album <EXCLUDE_BY_ALBUM>...
+        Exclude assets in the albums matching the given ids
+-v, --visible
+        Only include assets that are not part of the 'hidden' album
+-r, --restore-original-filenames
+        Restore original filenames
+-f, --flatten-albums
+        Flatten album structure
+-e, --include-edited
+        Include edited versions of the assets if available
+-E, --prefer-edited
+        Prefer the edited version of the asset if available and fall back to the original otherwise
+-d, --dry-run
+        Dry run
+-h, --help
+        Print help
 ```
-
-</details>
 
 #### Examples
 
@@ -104,45 +112,32 @@ point.
 > [!IMPORTANT]
 > Remember to test the different configuration options using the `-d` flag (dry-run) before running any actual exports!
 
-
-<details>
-    <summary>Snippets</summary>
-
-##### Full export
+##### Full export structured by year/month/album
 
 - Exports everything, including hidden assets
-    - Restores the original filenames used when importing the assets to the library
-    - Groups the assets in a `Year/Month/Album` structure
-    - Includes both the original and edited versions of each asset
+- Restores the original filenames used when importing the assets to the library
+- Groups the assets in a `Year/Month/Album` structure
+- Includes both the original and edited versions of each asset
+- Flattens the album structure
 
 ```shell
-$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -MHrfe
+$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -Mrfe
 ```
 
-##### Only include assets from a list of specific albums
+##### Only include assets that are part of one or more albums
 
-- Exports all assets that _are_ part of any of the given albums (in this case `700` and `701`)
-    - Album IDs can be obtained via the `list-albums` command
+- Exports all assets that _are_ part of the given albums (in this case `700` and `701`)
+  - Album IDs can be obtained via the `list-albums` command
 
 ```shell
-$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -i 700 701
+$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -a=700,701
 ```
 
-##### Exclude all assets being in a list of specific albums
+##### Exclude assets that are part of at least one given album
 
 - Exports all assets that _are not_ part of any of the given albums (in this case `700` and `701`)
-    - Album IDs can be obtained via the `list-albums` command
+  - Album IDs can be obtained via the `list-albums` command
 
 ```shell
-$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -x 700 701
+$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -A=700,701
 ```
-
-##### Export hidden files only
-
-- Exports all _hidden_ assets
-
-```shell
-$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> --must-be-hidden
-```
-
-</details>

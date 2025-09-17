@@ -66,5 +66,8 @@ uti_constants! {
     RAF("com.fuji.raw-image", "raf", DERIVATE_SUFFIX_IMG),
     MOV("com.apple.quicktime-movie", "mov", DERIVATE_SUFFIX_VID),
     MP4("public.mpeg-4", "mp4", DERIVATE_SUFFIX_VID),
-    BMP("com.microsoft.bmp", "bmp", DERIVATE_SUFFIX_IMG)
+    BMP("com.microsoft.bmp", "bmp", DERIVATE_SUFFIX_IMG),
+    M4V("com.apple.m4v-video", "m4v", DERIVATE_SUFFIX_VID),
+    GPP("public.3gpp", "3gp", DERIVATE_SUFFIX_VID),
+    CR2("com.canon.cr2-raw-image", "cr2", DERIVATE_SUFFIX_IMG)
 }

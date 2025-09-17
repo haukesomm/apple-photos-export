@@ -40,11 +40,12 @@ version_ranges! {
     PRE_SONOMA(0, 16999, "Older than macOS Sonoma"),
     SONOMA(17000, 17599, "Photos 9.0, macOS 14.0 to 14.5 Sonoma"),
     SONOMA_14_6(17600, 17999, "Photos 9.0, macOS 14.6 Sonoma"),
-    SEQUOIA(18000, 18999, "Photos 10.0, macOS 15 Sequoia")
+    SEQUOIA(18000, 18999, "Photos 10.0, macOS 15 Sequoia"),
+    TAHOE(19000, 19500, "Photos 11.0, macOS 26 Tahoe")
 }
 
 /// The currently supported version range
-pub const CURRENTLY_SUPPORTED_VERSION: VersionRange = VersionRange::SEQUOIA;
+pub const CURRENTLY_SUPPORTED_VERSION: VersionRange = VersionRange::TAHOE;
 
 
 /// Gets the binary encoded version plist from the Photos library database.

@@ -18,10 +18,10 @@ FROM ZASSET asset
          LEFT JOIN ZINTERNALRESOURCE int_res
                    ON int_res.ZASSET = asset_attribs.ZASSET
                        AND int_res.ZDATASTORESUBTYPE = 1
-         LEFT JOIN Z_30ASSETS album_mapping
+         LEFT JOIN Z_32ASSETS album_mapping
                    ON album_mapping.Z_3ASSETS = asset.Z_PK
          LEFT JOIN ZGENERICALBUM album
-                   ON album_mapping.Z_30ALBUMS = album.Z_PK
+                   ON album_mapping.Z_32ALBUMS = album.Z_PK
 WHERE asset.ZTRASHEDSTATE = false
   AND asset.ZVISIBILITYSTATE = 0
   AND asset.ZDUPLICATEASSETVISIBILITYSTATE = 0

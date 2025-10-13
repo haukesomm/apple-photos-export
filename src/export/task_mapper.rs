@@ -211,11 +211,15 @@ pub struct FilterByAlbumId {
 
 impl MapExportTask for FilterByAlbumId {
     fn map(&self, task: ExportTask) -> Option<ExportTask> {
-        let is_part_of_any = self.ids.iter().any(|i| task.asset.album_ids.contains(i));
+        let matches_filter = if let ExportAssetRelation::AlbumMember { album_id, .. } = task.meta.relation {
+            self.ids.contains(&album_id)
+        } else {
+            false
+        };
 
         let include = match self.mode {
-            AlbumFilterMode::Include => is_part_of_any,
-            AlbumFilterMode::Exclude => !is_part_of_any,
+            AlbumFilterMode::Include => matches_filter,
+            AlbumFilterMode::Exclude => !matches_filter,
         };
 
         if include {

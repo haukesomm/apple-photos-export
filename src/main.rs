@@ -67,17 +67,31 @@ pub struct ExportArgs {
     year_month_album: bool,
 
     /// Include assets in the albums matching the given ids
-    #[arg(short = 'a', long = "include-by-album", group = "ids", num_args = 1.., 
-    value_delimiter = ',')]
+    /// 
+    /// Note: This option only has an effect when using an album-based grouping strategy!
+    #[arg(
+        short = 'a', 
+        long = "include-by-album", 
+        group = "ids", 
+        num_args = 1.., 
+        value_delimiter = ','
+    )]
     include_by_album: Option<Vec<i32>>,
 
     /// Exclude assets in the albums matching the given ids
-    #[arg(short = 'A', long = "exclude-by-album", group = "ids", num_args = 1.., 
-    value_delimiter = ',')]
+    ///
+    /// Note: This option only has an effect when using an album-based grouping strategy!
+    #[arg(
+        short = 'A', 
+        long = "exclude-by-album", 
+        group = "ids", 
+        num_args = 1.., 
+        value_delimiter = ',')
+    ]
     exclude_by_album: Option<Vec<i32>>,
 
     /// Only include assets that are not part of the 'hidden' album
-    #[arg(short = 'v', long = "visible", group = "hidden")]
+    #[arg(short = 'v', long = "visible")]
     visible: bool,
 
     /// Restore original filenames

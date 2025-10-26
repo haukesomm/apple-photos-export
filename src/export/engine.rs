@@ -106,11 +106,9 @@ impl ExportEngine {
     
     fn export_asset(&self, task: &ExportTask, index: usize, total: usize) -> Result<(), String> {
         println!(
-            "{} ({}) exporting {} => {}",
+            "{}: {}",
             format!("[{}/{}]", index + 1, total).yellow(),
-            task.meta,
-            task.source.display().to_string().dimmed(),
-            task.destination.display().to_string().dimmed(),
+            task,
         );
         
         self.copy_strategy.copy(&task)

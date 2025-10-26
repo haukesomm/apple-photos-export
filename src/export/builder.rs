@@ -1,4 +1,4 @@
-use crate::export::{ExportAssetMetadata, ExportAssetRelation, ExportTask};
+use crate::export::ExportTask;
 use crate::model::{Asset, Library};
 use std::path::PathBuf;
 use crate::export::task_mapper::MapExportTask;
@@ -88,14 +88,14 @@ impl<'a> TasksBuilder<'a> {
         lib: &'a Library,
         assets: Vec<Asset>,
     ) -> impl Iterator<Item = ExportTask> + 'a {
-        assets.into_iter().map(move |a| ExportTask::for_original_from(lib, a))
+        assets.into_iter().map(move |a| ExportTask::for_original(lib, a))
     }
 
     fn _derivates_source(
         lib: &'a Library,
         assets: Vec<Asset>,
     ) -> impl Iterator<Item = ExportTask> + 'a {
-        assets.into_iter().filter_map(move |a| ExportTask::for_derivate_from(lib, a))
+        assets.into_iter().filter_map(move |a| ExportTask::for_derivate(lib, a))
     }
     
     fn _derivates_source_with_fallback(
@@ -104,9 +104,9 @@ impl<'a> TasksBuilder<'a> {
     ) -> impl Iterator<Item = ExportTask> + 'a {
         assets.into_iter().filter_map(|a| {
             if a.has_adjustments {
-                ExportTask::for_derivate_from(lib, a)
+                ExportTask::for_derivate(lib, a)
             } else {
-                Some(ExportTask::for_original_from(lib, a))
+                Some(ExportTask::for_original(lib, a))
             }
         })
     }
@@ -141,20 +141,8 @@ impl<'a> TasksBuilder<'a> {
                 task.asset
                     .album_ids
                     .iter()
-                    .enumerate()
-                    .map(|(index, album_id)| ExportTask {
-                        meta: ExportAssetMetadata {
-                            relation: ExportAssetRelation::AlbumMember {
-                                album_id: album_id.clone(),
-                                master: if index == 0 {
-                                    None
-                                } else {
-                                    // unwrap may be called here as there is at least one album id
-                                    Some(task.asset.album_ids.first().unwrap().clone())
-                                },
-                            },
-                            ..task.meta
-                        },
+                    .map(|album_id| ExportTask {
+                        album_id: Some(album_id.clone()),
                         ..task.clone()
                     })
                     .collect::<Vec<ExportTask>>()

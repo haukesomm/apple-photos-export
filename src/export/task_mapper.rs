@@ -1,4 +1,4 @@
-use crate::export::{ExportAssetRelation, ExportTask};
+use crate::export::ExportTask;
 use crate::model::album::Album;
 use chrono::Datelike;
 use std::collections::HashMap;
@@ -66,7 +66,7 @@ impl MapExportTask for MarkOriginalsAndDerivates {
                 .to_string_lossy(),
         );
 
-        dest.set_extension(if task.meta.derivate {
+        dest.set_extension(if task.is_derivate {
             format!("derivate.{}", ext)
         } else {
             format!("original.{}", ext)
@@ -135,7 +135,7 @@ impl<'a> GroupByAlbum<'a> {
 impl<'a> MapExportTask for GroupByAlbum<'a> {
     
     fn map(&self, task: ExportTask) -> Option<ExportTask> {
-        if let ExportAssetRelation::AlbumMember { album_id, .. } = task.meta.relation {
+        if let Some(album_id) = task.album_id {
             let album_path = self.build_album_path_recursively(album_id, self.max_depth);
             Some(ExportTask {
                 destination: PathBuf::from(album_path).join(&task.destination),
@@ -176,9 +176,9 @@ impl<'a> MapExportTask for GroupByYearMonthAndAlbum<'a> {
     fn map(&self, task: ExportTask) -> Option<ExportTask> {
         let fallback = GroupByYearAndMonth {};
 
-        match &task.meta.relation {
-            ExportAssetRelation::None => fallback.map(task),
-            ExportAssetRelation::AlbumMember { album_id, .. } => {
+        match &task.album_id {
+            None => fallback.map(task),
+            Some(album_id) => {
                 let album = self.albums.get(&album_id)?;
 
                 let mut prefix = PathBuf::new();
@@ -211,7 +211,7 @@ pub struct FilterByAlbumId {
 
 impl MapExportTask for FilterByAlbumId {
     fn map(&self, task: ExportTask) -> Option<ExportTask> {
-        let matches_filter = if let ExportAssetRelation::AlbumMember { album_id, .. } = task.meta.relation {
+        let matches_filter = if let Some(album_id) = task.album_id {
             self.ids.contains(&album_id)
         } else {
             false

@@ -1,3 +1,5 @@
+use crate::export::task_mapper::{AlbumFilterMode, OneTaskPerAlbum};
+use crate::export::{task_mapper, ExportEngine, ExportMetadata};
 use crate::model::Library;
 use crate::result::{Error, Result};
 use clap::{Args, Parser, Subcommand};
@@ -6,8 +8,6 @@ use rand::Rng;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use crate::export::{ExportEngine, ExportMetadata};
-use crate::export::task_mapper::AlbumFilterMode;
 
 mod db;
 mod foundation;
@@ -159,52 +159,46 @@ fn main() {
                 let exportable_asset_count = exportable_assets.len();
                 
                 
-                let config = export::builder::TasksBuilderConfig::new(
-                    &library,
-                    exportable_assets,
-                    &export_args.output_dir,
-                );
-                
                 let mut builder = {
-                    use export::builder::TasksBuilder;
+                    use export::factory::ExportTaskFactory;
                     if export_args.include_edited {
-                        TasksBuilder::for_originals_and_derivates(config)
+                        ExportTaskFactory::new_for_originals_and_derivates(library.clone())
                     } else if export_args.prefer_edited {
-                        TasksBuilder::for_derivates_with_fallback(config)
+                        ExportTaskFactory::new_for_derivates_with_fallback(library.clone())
                     } else {
-                        TasksBuilder::for_originals(config)
+                        ExportTaskFactory::new_for_originals(library.clone())
                     }
                 };
                 
                 if export_args.restore_original_filenames {
-                    builder.add_mapper(export::task_mapper::RestoreOriginalFilenames::new())
+                    builder.add_mapper(task_mapper::RestoreOriginalFilenames::new())
                 }
 
                 if export_args.include_edited {
-                    builder.add_mapper(export::task_mapper::MarkOriginalsAndDerivates::new())
+                    builder.add_mapper(task_mapper::MarkOriginalsAndDerivates::new())
                 }
                 
                 if export_args.album || export_args.year_month_album {
-                    builder.create_per_album_tasks();
+                    builder.add_mapper(OneTaskPerAlbum::new());
                     
                     if export_args.flatten_albums {
-                        builder.add_mapper(export::task_mapper::GroupByAlbum::flat(&albums))
+                        builder.add_mapper(task_mapper::GroupByAlbum::flat(&albums))
                     } else {
-                        builder.add_mapper(export::task_mapper::GroupByAlbum::recursive(&albums))
+                        builder.add_mapper(task_mapper::GroupByAlbum::recursive(&albums))
                     }
                 }
 
                 if export_args.year_month_album {
-                    builder.add_mapper(export::task_mapper::GroupByYearMonthAndAlbum::new(&albums))
+                    builder.add_mapper(task_mapper::GroupByYearMonthAndAlbum::new(&albums))
                 }
                 
                 if export_args.year_month {
-                    builder.add_mapper(export::task_mapper::GroupByYearAndMonth::new())
+                    builder.add_mapper(task_mapper::GroupByYearAndMonth::new())
                 }
                 
                 if let Some(ids) = &export_args.include_by_album {
                     builder.add_mapper(
-                        export::task_mapper::FilterByAlbumId::new(
+                        task_mapper::FilterByAlbumId::new(
                             ids.clone(), 
                             AlbumFilterMode::Include
                         )
@@ -213,7 +207,7 @@ fn main() {
 
                 if let Some(ids) = &export_args.exclude_by_album {
                     builder.add_mapper(
-                        export::task_mapper::FilterByAlbumId::new(
+                        task_mapper::FilterByAlbumId::new(
                             ids.clone(),
                             AlbumFilterMode::Exclude
                         )
@@ -221,12 +215,16 @@ fn main() {
                 }
 
                 if export_args.visible {
-                    builder.add_mapper(export::task_mapper::ExcludeHidden::new())
+                    builder.add_mapper(task_mapper::ExcludeHidden::new())
                 } else {
-                    builder.add_mapper(export::task_mapper::PrefixHidden::new())
+                    builder.add_mapper(task_mapper::PrefixHidden::new())
                 }
                 
-                let export_tasks = builder.build();
+                
+                builder.add_mapper(task_mapper::ConvertToAbsolutePath::new(&export_args.output_dir));
+                
+                
+                let export_tasks = builder.build(exportable_assets);
                 
                 
                 let engine = if export_args.dry_run {

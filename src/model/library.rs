@@ -5,6 +5,7 @@ use std::path::PathBuf;
 /// 
 /// Once initialized with the path of the library on disk, it can be used to compute asset paths and
 /// similar information.
+#[derive(Clone)]
 pub struct Library {
     pub path: PathBuf,
 }

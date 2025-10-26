@@ -33,7 +33,7 @@ impl ExportEngine {
     /// 
     /// Use the `dry_run` method to create a dry-run instance of the engine.
     pub fn new() -> Self {
-        ExportEngine {
+        Self {
             copy_strategy: Box::new(CopyAssetViaFs::new()),
         }
     }
@@ -43,7 +43,7 @@ impl ExportEngine {
     /// 
     /// Use the `new` method to create a real instance of the engine that performs the export.
     pub fn dry_run() -> Self {
-        ExportEngine {
+        Self {
             copy_strategy: Box::new(PretendToCopyAsset::new()),
         }
     }

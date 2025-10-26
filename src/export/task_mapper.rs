@@ -7,6 +7,22 @@ use std::path::PathBuf;
 use derive_new::new;
 
 
+/// The result of mapping an export task.
+/// 
+/// This enum represents the possible outcomes of mapping an `ExportTask`:
+/// 1. `Remove`: The task should be removed and not exported.
+/// 2. `Map(ExportTask)`: The task has been transformed into a new `ExportTask`.
+/// 3. `Split(Vec<ExportTask>)`: The task has been split into multiple `ExportTask`s.
+/// 
+/// This allows for flexible handling of export tasks, enabling filtering, transformation,
+/// and splitting of tasks as needed.
+pub enum TaskMapperResult {
+    Remove,
+    Map(ExportTask),
+    Split(Vec<ExportTask>),
+}
+
+
 /// A trait for mapping export tasks.
 /// 
 /// This trait is used to transform an `ExportTask` into another `ExportTask` or filter it out.
@@ -15,7 +31,7 @@ use derive_new::new;
 /// 
 /// Upon export, all registered mappers are called in the order they were registered.
 pub trait MapExportTask {
-    fn map(&self, task: ExportTask) -> Option<ExportTask>;
+    fn map(&self, task: ExportTask) -> TaskMapperResult;
 }
 
 
@@ -24,11 +40,11 @@ pub trait MapExportTask {
 pub struct ExcludeHidden;
 
 impl MapExportTask for ExcludeHidden {
-    fn map(&self, task: ExportTask) -> Option<ExportTask> {
+    fn map(&self, task: ExportTask) -> TaskMapperResult {
         if task.asset.hidden {
-            None
+            TaskMapperResult::Remove
         } else {
-            Some(task)
+            TaskMapperResult::Map(task)
         }
     }
 }
@@ -39,8 +55,8 @@ impl MapExportTask for ExcludeHidden {
 pub struct PrefixHidden;
 
 impl MapExportTask for PrefixHidden {
-    fn map(&self, task: ExportTask) -> Option<ExportTask> {
-        Some(if task.asset.hidden {
+    fn map(&self, task: ExportTask) -> TaskMapperResult {
+        TaskMapperResult::Map(if task.asset.hidden {
             ExportTask {
                 destination: PathBuf::from("_hidden").join(&task.destination),
                 ..task
@@ -58,7 +74,7 @@ impl MapExportTask for PrefixHidden {
 pub struct MarkOriginalsAndDerivates;
 
 impl MapExportTask for MarkOriginalsAndDerivates {
-    fn map(&self, task: ExportTask) -> Option<ExportTask> {
+    fn map(&self, task: ExportTask) -> TaskMapperResult {
         let mut dest = task.destination;
         let ext = String::from(
             dest.extension()
@@ -72,7 +88,7 @@ impl MapExportTask for MarkOriginalsAndDerivates {
             format!("original.{}", ext)
         });
 
-        Some(ExportTask {
+        TaskMapperResult::Map(ExportTask {
             destination: dest,
             ..task
         })
@@ -85,7 +101,7 @@ impl MapExportTask for MarkOriginalsAndDerivates {
 pub struct RestoreOriginalFilenames;
 
 impl MapExportTask for RestoreOriginalFilenames {
-    fn map(&self, task: ExportTask) -> Option<ExportTask> {
+    fn map(&self, task: ExportTask) -> TaskMapperResult {
         let original_extension = task.destination.extension().clone();
 
         let mut destination = PathBuf::from(&task.destination);
@@ -94,7 +110,7 @@ impl MapExportTask for RestoreOriginalFilenames {
         // Restore original extension or remove it if the original destination did not have one
         destination.set_extension(&original_extension.unwrap_or(OsStr::new("")));
 
-        Some(ExportTask {
+        TaskMapperResult::Map(ExportTask {
             destination,
             ..task
         })
@@ -134,15 +150,15 @@ impl<'a> GroupByAlbum<'a> {
 
 impl<'a> MapExportTask for GroupByAlbum<'a> {
     
-    fn map(&self, task: ExportTask) -> Option<ExportTask> {
+    fn map(&self, task: ExportTask) -> TaskMapperResult {
         if let Some(album_id) = task.album_id {
             let album_path = self.build_album_path_recursively(album_id, self.max_depth);
-            Some(ExportTask {
+            TaskMapperResult::Map(ExportTask {
                 destination: PathBuf::from(album_path).join(&task.destination),
                 ..task
             })
         } else {
-            Some(task)
+            TaskMapperResult::Map(task)
         }
     }
 }
@@ -153,12 +169,12 @@ impl<'a> MapExportTask for GroupByAlbum<'a> {
 pub struct GroupByYearAndMonth;
 
 impl MapExportTask for GroupByYearAndMonth {
-    fn map(&self, task: ExportTask) -> Option<ExportTask> {
+    fn map(&self, task: ExportTask) -> TaskMapperResult {
         let mut prefix = PathBuf::new();
         prefix.push(task.asset.datetime.year().to_string());
         prefix.push(format!("{:>02}", task.asset.datetime.month()));
 
-        Some(ExportTask {
+        TaskMapperResult::Map(ExportTask {
             destination: PathBuf::from(prefix).join(&task.destination),
             ..task
         })
@@ -173,24 +189,26 @@ pub struct GroupByYearMonthAndAlbum<'a> {
 }
 
 impl<'a> MapExportTask for GroupByYearMonthAndAlbum<'a> {
-    fn map(&self, task: ExportTask) -> Option<ExportTask> {
+    fn map(&self, task: ExportTask) -> TaskMapperResult {
         let fallback = GroupByYearAndMonth {};
 
         match &task.album_id {
             None => fallback.map(task),
             Some(album_id) => {
-                let album = self.albums.get(&album_id)?;
+                if let Some(album) = self.albums.get(&album_id) {
+                    let mut prefix = PathBuf::new();
+                    if let Some(date) = album.start_date {
+                        prefix.push(date.year().to_string());
+                        prefix.push(format!("{:>02}", date.month()))
+                    }
 
-                let mut prefix = PathBuf::new();
-                if let Some(date) = album.start_date {
-                    prefix.push(date.year().to_string());
-                    prefix.push(format!("{:>02}", date.month()))
+                    TaskMapperResult::Map(ExportTask {
+                        destination: PathBuf::from(prefix).join(&task.destination),
+                        ..task
+                    })
+                } else {
+                    TaskMapperResult::Remove
                 }
-
-                Some(ExportTask {
-                    destination: PathBuf::from(prefix).join(&task.destination),
-                    ..task
-                })
             }
         }
     }
@@ -210,7 +228,7 @@ pub struct FilterByAlbumId {
 }
 
 impl MapExportTask for FilterByAlbumId {
-    fn map(&self, task: ExportTask) -> Option<ExportTask> {
+    fn map(&self, task: ExportTask) -> TaskMapperResult {
         let matches_filter = if let Some(album_id) = task.album_id {
             self.ids.contains(&album_id)
         } else {
@@ -223,9 +241,59 @@ impl MapExportTask for FilterByAlbumId {
         };
 
         if include {
-            Some(task)
+            TaskMapperResult::Map(task)
         } else {
-            None
+            TaskMapperResult::Remove
         }
+    }
+}
+
+
+/// A mapper that creates one export task per album the asset is part of.
+/// 
+/// This is needed because an asset can be part of multiple albums, but the export task
+/// structure only maps one source to one destination. This mapper splits the task
+/// into multiple tasks, one for each album the asset is part of.
+#[derive(new)]
+pub struct OneTaskPerAlbum;
+
+impl MapExportTask for OneTaskPerAlbum {
+    fn map(&self, task: ExportTask) -> TaskMapperResult {
+        if task.asset.album_ids.is_empty() || task.album_id.is_some() {
+            return TaskMapperResult::Map(task);
+        }
+        
+        let mut tasks: Vec<ExportTask> = vec![];
+        
+        for album_id in &task.asset.album_ids {
+            tasks.push(
+                ExportTask {
+                    album_id: Some(album_id.clone()),
+                    ..task.clone()
+                }
+            )
+        }
+        
+        TaskMapperResult::Split(tasks)
+    }
+}
+
+/// A mapper that converts the destination path to an absolute path using the given output directory.
+pub struct ConvertToAbsolutePath {
+    output_dir: PathBuf,
+}
+
+impl ConvertToAbsolutePath {
+    pub fn new<P : Into<PathBuf>>(output_dir: P) -> ConvertToAbsolutePath {
+        Self { output_dir: output_dir.into() }
+    }
+}
+
+impl MapExportTask for ConvertToAbsolutePath {
+    fn map(&self, task: ExportTask) -> TaskMapperResult {
+        TaskMapperResult::Map(ExportTask {
+            destination: self.output_dir.join(task.destination),
+            ..task
+        })
     }
 }

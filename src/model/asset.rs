@@ -8,9 +8,6 @@ use crate::foundation::Uti;
 #[derive(Clone)]
 pub struct Asset {
     
-    /// Internal id of the asset in the Photos database
-    pub id: i32,
-    
     /// The UUID of the asset.
     pub uuid: String,
     

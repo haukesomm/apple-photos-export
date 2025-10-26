@@ -20,7 +20,6 @@ pub fn get_exportable_assets(conn: &rusqlite::Connection) -> crate::Result<Vec<A
     let assets: crate::Result<Vec<Asset>> = stmt.query_and_then([], |row| {
         Ok(
             Asset {
-                id: row.get("ID")?,
                 uuid: row.get("UUID")?,
                 dir: row.get("DIR")?,
                 filename: row.get("FILENAME")?,

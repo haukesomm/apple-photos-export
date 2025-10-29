@@ -1,6 +1,7 @@
 use chrono::NaiveDateTime;
-use crate::foundation::{ParseCocoaTimestamp, Uti};
+use crate::cocoa_time::ParseCocoaTimestamp;
 use crate::model::Asset;
+use crate::uti::Uti;
 
 /// Get the count of all assets in the database that are _visible_, meaning they are not
 /// part of the "hidden" album or moved to the trash.

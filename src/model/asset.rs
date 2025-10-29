@@ -1,4 +1,4 @@
-use crate::foundation::Uti;
+use crate::uti::Uti;
 
 /// Represents an asset in the Photos library.
 /// 

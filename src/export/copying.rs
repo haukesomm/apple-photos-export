@@ -1,7 +1,7 @@
 use colored::Colorize;
 use derive_new::new;
-use crate::export::ExportTask;
-
+use std::path::Path;
+use crate::export::task::AssetMapping;
 
 /// Implementors of this trait are able to copy an Asset from an ExportTasks source to the 
 /// associated destination.
@@ -9,7 +9,10 @@ use crate::export::ExportTask;
 /// Additionally, this trait also defines how to report the number of successful copy operations
 /// to the user.
 pub trait CopyAsset {
-    fn copy(&self, task: &ExportTask) -> Result<(), String>;
+    fn copy(&self, task: &AssetMapping) -> Result<(), String>;
+    
+    fn delete(&self, path: &Path) -> Result<(), String>;
+    
     fn report_success(&self, count: i32);
 }
 
@@ -18,8 +21,8 @@ pub trait CopyAsset {
 #[derive(new)]
 pub struct CopyAssetViaFs;
 
-impl CopyAsset for CopyAssetViaFs {
-    fn copy(&self, task: &ExportTask) -> Result<(), String> {
+impl CopyAssetViaFs {
+    fn _copy(&self, task: &AssetMapping) -> Result<(), String> {
         let stem = task.destination
             .file_stem()
             .map(|s| s.to_string_lossy().to_string())
@@ -30,24 +33,24 @@ impl CopyAsset for CopyAssetViaFs {
                     task.destination.display()
                 )
             )?;
-        
+
         let ext = task.destination
             .extension()
             .ok_or(
                 format!(
-                    "Original file name has no extension - source: {}, original filename: {}", 
-                    task.source.display(), 
+                    "Original file name has no extension - source: {}, original filename: {}",
+                    task.source.display(),
                     task.destination.display()
                 )
             )?;
 
         let mut dest = task.destination.to_owned();
         let mut counter = 0;
-        
+
         while dest.exists() {
             dest.set_file_name(format!("{} ({})", &stem, counter));
             dest.set_extension(&ext);
-            
+
             counter = counter + 1;
 
             if counter > 10 {
@@ -61,6 +64,23 @@ impl CopyAsset for CopyAssetViaFs {
         }
 
         std::fs::copy(&task.source, &task.destination)
+            .map(|_| ())
+            .map_err(|inner_message| format!(
+                "Could not copy file: {} to {}: {}", 
+                &task.source.to_string_lossy(), 
+                &task.destination.to_string_lossy(),
+                inner_message
+            ))
+    }
+}
+
+impl CopyAsset for CopyAssetViaFs {
+    fn copy(&self, task: &AssetMapping) -> Result<(), String> {
+        self._copy(task).map_err(|msg| format!("{}: {}", task.source.to_string_lossy(), msg))
+    }
+    
+    fn delete(&self, path: &Path) -> Result<(), String> {
+        std::fs::remove_file(path)
             .map(|_| ())
             .map_err(|e| e.to_string())
     }
@@ -76,7 +96,11 @@ impl CopyAsset for CopyAssetViaFs {
 pub struct PretendToCopyAsset;
 
 impl CopyAsset for PretendToCopyAsset {
-    fn copy(&self, _: &ExportTask) -> Result<(), String> {
+    fn copy(&self, _: &AssetMapping) -> Result<(), String> {
+        Ok(())
+    }
+    
+    fn delete(&self, _: &Path) -> Result<(), String> {
         Ok(())
     }
 

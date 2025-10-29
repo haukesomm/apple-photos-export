@@ -1,5 +1,5 @@
-use crate::export::task_mapper::{MapExportTask, TaskMapperResult};
-use crate::export::ExportTask;
+use crate::export::task::{AssetMapping, ExportTask};
+use crate::export::task::mapping::{MapExportTask, TaskMapperResult};
 use crate::model::{Asset, Library};
 
 /// A factory to create export tasks for a given set of assets.
@@ -22,7 +22,7 @@ impl<'a> ExportTaskFactory<'a> {
     pub fn new_for_originals(library: Library) -> Self {
         Self::new(
             library,
-            |lib, asset| vec![ExportTask::for_original(lib, asset)]
+            |lib, asset| vec![ExportTask::Copy(AssetMapping::for_original(lib, asset))]
         )
     }
 
@@ -56,13 +56,13 @@ impl<'a> ExportTaskFactory<'a> {
         let mut vec: Vec<ExportTask> = vec![];
 
         if asset.has_adjustments {
-            if let Some(task) = ExportTask::for_derivate(library, asset.clone()) {
-                vec.push(task);
+            if let Some(mapping) = AssetMapping::for_derivate(library, asset.clone()) {
+                vec.push(ExportTask::Copy(mapping));
             }
         }
 
         if !asset.has_adjustments || always_include_fallback {
-            vec.push(ExportTask::for_original(library, asset));
+            vec.push(ExportTask::Copy(AssetMapping::for_original(library, asset)));
         }
 
         vec
@@ -94,7 +94,7 @@ impl<'a> ExportTaskFactory<'a> {
     }
     
     fn recursively_apply_mapper(&self, mapper: &dyn MapExportTask, task: ExportTask) -> Vec<ExportTask> {
-        let result = mapper.map(task);
+        let result = mapper.map_export_task(task);
         match result {
             TaskMapperResult::Remove => vec![],
             TaskMapperResult::Map(task) => vec![task],

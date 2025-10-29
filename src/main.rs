@@ -1,21 +1,26 @@
-use crate::export::task_mapper::{AlbumFilterMode, OneTaskPerAlbum};
-use crate::export::{task_mapper, ExportEngine, ExportMetadata};
+use crate::export::task::mapping::mappers;
+use crate::export::{ExportEngine, ExportMetadata};
 use crate::model::Library;
 use crate::result::{Error, Result};
 use clap::{Args, Parser, Subcommand};
 use colored::Colorize;
 use rand::Rng;
+use std::cell::RefCell;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 mod db;
-mod foundation;
 mod model;
 mod result;
 mod album_list;
 mod export;
 mod confirmation;
+pub mod fs;
+mod cocoa_time;
+mod uti;
 
 /// Export photos from the macOS Photos library, organized by album and/or date.
 #[derive(Parser, Debug)]
@@ -110,6 +115,14 @@ pub struct ExportArgs {
     #[arg(short = 'E', long = "prefer-edited", group = "edited")]
     prefer_edited: bool,
 
+    /// Don't copy files that already exist in the output directory.
+    #[arg(short = 's', long = "skip")]
+    skip_existing: bool,
+    
+    /// Delete files in the output directory that are not part of the current export.
+    #[arg(long = "delete")]
+    delete: bool,
+
     /// Dry run
     #[arg(short = 'd', long = "dry-run")]
     dry_run: bool,
@@ -171,63 +184,97 @@ fn main() {
                 };
                 
                 if export_args.restore_original_filenames {
-                    builder.add_mapper(task_mapper::RestoreOriginalFilenames::new())
+                    builder.add_mapper(mappers::RestoreOriginalFilenames::new())
                 }
 
                 if export_args.include_edited {
-                    builder.add_mapper(task_mapper::MarkOriginalsAndDerivates::new())
+                    builder.add_mapper(mappers::MarkOriginalsAndDerivates::new())
                 }
                 
                 if export_args.album || export_args.year_month_album {
-                    builder.add_mapper(OneTaskPerAlbum::new());
+                    builder.add_mapper(mappers::OneTaskPerAlbum::new());
                     
                     if export_args.flatten_albums {
-                        builder.add_mapper(task_mapper::GroupByAlbum::flat(&albums))
+                        builder.add_mapper(mappers::GroupByAlbum::flat(&albums))
                     } else {
-                        builder.add_mapper(task_mapper::GroupByAlbum::recursive(&albums))
+                        builder.add_mapper(mappers::GroupByAlbum::recursive(&albums))
                     }
                 }
 
                 if export_args.year_month_album {
-                    builder.add_mapper(task_mapper::GroupByYearMonthAndAlbum::new(&albums))
+                    builder.add_mapper(mappers::GroupByYearMonthAndAlbum::new(&albums))
                 }
                 
                 if export_args.year_month {
-                    builder.add_mapper(task_mapper::GroupByYearAndMonth::new())
+                    builder.add_mapper(mappers::GroupByYearAndMonth::new())
                 }
                 
                 if let Some(ids) = &export_args.include_by_album {
                     builder.add_mapper(
-                        task_mapper::FilterByAlbumId::new(
+                        mappers::FilterByAlbumId::new(
                             ids.clone(), 
-                            AlbumFilterMode::Include
+                            mappers::AlbumFilterMode::Include
                         )
                     );
                 }
 
                 if let Some(ids) = &export_args.exclude_by_album {
                     builder.add_mapper(
-                        task_mapper::FilterByAlbumId::new(
+                        mappers::FilterByAlbumId::new(
                             ids.clone(),
-                            AlbumFilterMode::Exclude
+                            mappers::AlbumFilterMode::Exclude
                         )
                     );
                 }
 
                 if export_args.visible {
-                    builder.add_mapper(task_mapper::ExcludeHidden::new())
+                    builder.add_mapper(mappers::ExcludeHidden::new())
                 } else {
-                    builder.add_mapper(task_mapper::PrefixHidden::new())
+                    builder.add_mapper(mappers::PrefixHidden::new())
                 }
                 
                 
-                builder.add_mapper(task_mapper::ConvertToAbsolutePath::new(&export_args.output_dir));
+                builder.add_mapper(mappers::ConvertToAbsolutePath::new(&export_args.output_dir));
                 
                 
-                let export_tasks = builder.build(exportable_assets);
+                // Keep track of existing files in the output directory
+                //
+                // This is used for the 'skip existing' and 'delete' options:
+                // - For 'skip existing', we need to know which files already exist so we can skip them
+                // - For 'delete', we need to know which files have not occurred in the export so we can delete them
+                //
+                // In order to do so, we first gather all existing files in the output directory
+                // before we start building the export tasks. Then, when building the export tasks,
+                // we mark files that are going to be exported as 'handled' via the `SkipIfExists` mapper.
+                // Finally, after building the export tasks, we can determine which files are unhandled
+                // and create delete tasks for them.
+                let existing_unhandled_output_files: Rc<RefCell<HashSet<PathBuf>>> = Rc::new(RefCell::new(HashSet::new()));
+                
+                if export_args.skip_existing || export_args.delete {
+                    println!("Indexing existing files in output directory (this may take some time) ...");
+                    existing_unhandled_output_files
+                        .borrow_mut()
+                        .extend(fs::recursively_get_files(&export_args.output_dir));
+
+                    if export_args.skip_existing {
+                        builder.add_mapper(mappers::SkipIfExists::new(Rc::clone(&existing_unhandled_output_files)));
+                    }
+                    
+                    builder.add_mapper(mappers::RemoveFromCacheIfExists::new(Rc::clone(&existing_unhandled_output_files)));
+                }
                 
                 
-                let engine = if export_args.dry_run {
+                let mut export_tasks = builder.build(exportable_assets);
+                
+                
+                if export_args.delete {
+                    let borrow = existing_unhandled_output_files.borrow();
+                    let delete_tasks = export::task::create_delete_tasks(borrow.iter());
+                    export_tasks.extend(delete_tasks);
+                }
+                
+                
+                let engine: ExportEngine = if export_args.dry_run {
                     ExportEngine::dry_run()
                 } else {
                     ExportEngine::new()
@@ -285,7 +332,7 @@ where
 }
 
 /// Writes the given log string to a file and returns the filename.
-fn _write_export_error_log(log: &Vec<(String, String)>) -> std::result::Result<String, String> {
+fn _write_export_error_log(log: &Vec<String>) -> std::result::Result<String, String> {
     let random_suffix: String = rand::thread_rng()
         .sample_iter(&rand::distributions::Alphanumeric)
         .take(8)
@@ -297,9 +344,9 @@ fn _write_export_error_log(log: &Vec<(String, String)>) -> std::result::Result<S
     let mut report = File::create(&filename)
         .map_err(|e| format!("Unable to create error log: {}", e))?;
     
-    for (asset_name, error) in log {
+    for error in log {
         report
-            .write(format!("{}: {}\n", asset_name, error).as_bytes())
+            .write(error.as_bytes())
             .map_err(|e| format!("Unable to write to error log: {}", e))?;
     }
 

@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use crate::foundation::ParseCocoaTimestamp;
+use crate::cocoa_time::ParseCocoaTimestamp;
 use crate::model::album::{Album};
 
 /// Queries the database for all albums and returns them as a vector.

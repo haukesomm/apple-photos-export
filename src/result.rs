@@ -17,9 +17,8 @@ pub enum Error {
     /// This type is used for errors that occur during the export process, e.g. when copying files
     /// or creating directories.
     /// 
-    /// It contains a list of tuples with the source of the asset that caused the
-    /// error and a description of the error.
-    Export(Vec<(String, String)>),
+    /// It contains a list of error messages for each failed export.
+    Export(Vec<String>),
 }
 
 /// Type alias for a result that can return the app-internal `Error` type defined in the `result` 

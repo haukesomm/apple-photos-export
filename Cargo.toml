@@ -12,3 +12,4 @@ plist = "1.7.1"
 rand = "0.8.5"
 rusqlite = { version = "0.33.0", features = ["bundled"] }
 derive-new = "0.7.0"
+walkdir = "2.5.0"

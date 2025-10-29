@@ -2,7 +2,16 @@
 
 The following is a list of changes made to the project in reverse chronological order.
 
-## `1.0.0-SNAPSHOT`
+## `1.1.0-SNAPSHOT`
+
+### New output options
+
+| Flag                   | Description                                                                        |
+|------------------------|------------------------------------------------------------------------------------|
+| `-s`/`--skip-existing` | Don't copy files that already exist in the output directory.                       |
+| `--delete`             | Delete files from the output directory that are not present in the Photos library. |
+
+## `1.0.0`
 
 - Complete rewrite from the ground up
 - The library path is now supplied _before_ the subcommand in the CLI: 

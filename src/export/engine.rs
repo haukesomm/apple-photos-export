@@ -1,8 +1,8 @@
 use crate::confirmation::{confirmation_prompt, Answer};
-use crate::export::ExportTask;
+use crate::export::copying::{CopyAsset, CopyAssetViaFs, PretendToCopyAsset};
 use crate::result::Error;
 use colored::Colorize;
-use crate::export::copying::{CopyAsset, CopyAssetViaFs, PretendToCopyAsset};
+use crate::export::task::{AssetMapping, ExportTask};
 
 /// Holds the metadata for the export process, including the total number of assets,
 /// the number of exportable assets, and the number of export tasks.
@@ -25,29 +25,28 @@ pub struct ExportEngine {
 }
 
 impl ExportEngine {
-    
+
     /// Creates a new instance of the export engine.
-    /// 
+    ///
     /// The engine is configured to copy files from the source to the destination using the
     /// `std::fs::copy` function.
-    /// 
+    ///
     /// Use the `dry_run` method to create a dry-run instance of the engine.
     pub fn new() -> Self {
         Self {
             copy_strategy: Box::new(CopyAssetViaFs::new()),
         }
     }
-    
+
     /// Creates a new instance of the export engine that simulates the export process without
     /// actually copying any files.
-    /// 
+    ///
     /// Use the `new` method to create a real instance of the engine that performs the export.
     pub fn dry_run() -> Self {
         Self {
             copy_strategy: Box::new(PretendToCopyAsset::new()),
         }
     }
-    
     
     /// Executes the export process using the provided tasks and metadata.
     /// 
@@ -82,7 +81,7 @@ impl ExportEngine {
             return Ok(());
         };
 
-        let (successes, failures): (i32, Vec<(String, String)>) = tasks
+        let (successes, failures): (i32, Vec<String>) = tasks
             .iter()
             .enumerate()
             .fold((0, vec![]), |(success_counter, failures), (index, task)| {
@@ -90,7 +89,7 @@ impl ExportEngine {
                     Ok(_) => (success_counter + 1, failures),
                     Err(msg) => {
                         let mut f = Vec::from(failures);
-                        f.push((task.source.display().to_string(), msg));
+                        f.push(msg);
                         (success_counter, f)
                     }
                 }
@@ -105,12 +104,25 @@ impl ExportEngine {
     }
     
     fn export_asset(&self, task: &ExportTask, index: usize, total: usize) -> Result<(), String> {
-        println!(
-            "{}: {}",
-            format!("[{}/{}]", index + 1, total).yellow(),
-            task,
-        );
+        print!("{}", format!("[{}/{}] ", index + 1, total).yellow());
         
-        self.copy_strategy.copy(&task)
+        let result = match task {
+            ExportTask::Copy(mapping @ AssetMapping { skip: false, .. }) => {
+                print!("{} {}", "Exporting".bright_green(), mapping);
+                self.copy_strategy.copy(mapping)
+            }
+            ExportTask::Copy(mapping @ AssetMapping { skip: true, .. }) => {
+                println!("{} {}", "Skipping".bright_blue(), mapping);
+                Ok(())
+            }
+            ExportTask::Delete(path) => {
+                print!("{} {}", "Deleting file at".bright_red(), format!("{}", path.display()).dimmed());
+                self.copy_strategy.delete(path)
+            }
+        };
+        
+        println!();
+        
+        result
     }
 }

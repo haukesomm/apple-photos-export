@@ -1,15 +1,15 @@
-use crate::model::album::{Album};
-use std::collections::HashMap;
+use crate::model::album::Album;
 use colored::Colorize;
+use std::collections::HashMap;
 
 /// Prints the given list of albums as a tree structure to the console.
 pub fn print_album_tree(albums: &Vec<Album>) -> crate::Result<()> {
     let tree = build_tree(albums)?;
-    
+
     let mut buffer = String::new();
     ascii_tree::write_tree(&mut buffer, &tree)?;
     println!("{}", buffer);
-    
+
     Ok(())
 }
 
@@ -35,7 +35,7 @@ fn build_tree_recursively(
     albums_by_parent: &HashMap<i32, Vec<&Album>>,
 ) -> ascii_tree::Tree {
     let album_label = format_album(album);
-    
+
     let children = match albums_by_parent.get(&album.id) {
         None => return ascii_tree::Tree::Leaf(vec![album_label]),
         Some(child_albums) => child_albums,
@@ -56,9 +56,10 @@ fn format_album(album: &Album) -> String {
         "{}:",
         match album.start_date {
             None => "<no date>".to_string(),
-            Some(d) => d.to_string()
+            Some(d) => d.to_string(),
         }
-    ).dimmed();
+    )
+    .dimmed();
 
     let name = if album.is_root_album() {
         "<root>".magenta().to_string()

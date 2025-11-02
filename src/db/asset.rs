@@ -1,7 +1,7 @@
-use chrono::NaiveDateTime;
 use crate::cocoa_time::ParseCocoaTimestamp;
 use crate::model::Asset;
 use crate::uti::Uti;
+use chrono::NaiveDateTime;
 
 /// Get the count of all assets in the database that are _visible_, meaning they are not
 /// part of the "hidden" album or moved to the trash.
@@ -12,19 +12,19 @@ pub fn get_visible_count(conn: &rusqlite::Connection) -> crate::Result<usize> {
 }
 
 /// Get the count of all assets in the database that are _exportable_, meaning they are not
-/// part of the "hidden" album or moved to the trash, and are locally available in the library 
+/// part of the "hidden" album or moved to the trash, and are locally available in the library
 /// file.
 pub fn get_exportable_assets(conn: &rusqlite::Connection) -> crate::Result<Vec<Asset>> {
     let raw_sql = include_str!("../../queries/get_exportable_assets.sql");
     let mut stmt = conn.prepare(raw_sql)?;
-    
-    let assets: crate::Result<Vec<Asset>> = stmt.query_and_then([], |row| {
-        Ok(
-            Asset {
+
+    let assets: crate::Result<Vec<Asset>> = stmt
+        .query_and_then([], |row| {
+            Ok(Asset {
                 uuid: row.get("UUID")?,
                 dir: row.get("DIR")?,
                 filename: row.get("FILENAME")?,
-                derivate_uti: { 
+                derivate_uti: {
                     let uti_name: String = row.get("UTI")?;
                     Uti::from_id(uti_name.as_str())?
                 },
@@ -44,10 +44,10 @@ pub fn get_exportable_assets(conn: &rusqlite::Connection) -> crate::Result<Vec<A
                         })
                         .flatten()
                         .unwrap_or(vec![])
-                }
-            }
-        )
-    })?.collect();
-    
+                },
+            })
+        })?
+        .collect();
+
     assets
 }

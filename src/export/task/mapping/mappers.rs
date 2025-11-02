@@ -1,13 +1,13 @@
+use crate::export::task::mapping::{MapAsset, MapExportTask, TaskMapperResult};
+use crate::export::task::{AssetMapping, ExportTask};
+use crate::model::album::Album;
+use chrono::Datelike;
+use derive_new::new;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::rc::Rc;
-use chrono::Datelike;
-use derive_new::new;
-use crate::export::task::{AssetMapping, ExportTask};
-use crate::export::task::mapping::{MapAsset, MapExportTask, TaskMapperResult};
-use crate::model::album::Album;
 
 /// A mapper that excludes hidden assets from the export.
 #[derive(new)]
@@ -17,13 +17,12 @@ impl MapExportTask for ExcludeHidden {
     fn map_export_task(&self, task: ExportTask) -> TaskMapperResult {
         if let ExportTask::Copy(m) = &task {
             if m.asset.hidden {
-                return TaskMapperResult::Remove
+                return TaskMapperResult::Remove;
             }
         }
         TaskMapperResult::Map(task)
     }
 }
-
 
 /// A mapper that prefixes the destination path with "_hidden" for hidden assets.
 #[derive(new)]
@@ -41,7 +40,6 @@ impl MapAsset for PrefixHidden {
         }
     }
 }
-
 
 /// A mapper that appends `.original` or `.derivate` to the destination file name based on whether
 /// the asset is a derivative or not.
@@ -70,7 +68,6 @@ impl MapAsset for MarkOriginalsAndDerivates {
     }
 }
 
-
 /// A mapper that restores the original file name of the asset in the destination path.
 #[derive(new)]
 pub struct RestoreOriginalFilenames;
@@ -92,21 +89,25 @@ impl MapAsset for RestoreOriginalFilenames {
     }
 }
 
-
 /// A mapper that groups assets by album.
 pub struct GroupByAlbum<'a> {
     albums: &'a HashMap<i32, Album>,
-    max_depth: u8
+    max_depth: u8,
 }
 
 impl<'a> GroupByAlbum<'a> {
-
     pub fn flat(albums: &'a HashMap<i32, Album>) -> Self {
-        Self { albums, max_depth: 1 }
+        Self {
+            albums,
+            max_depth: 1,
+        }
     }
 
     pub fn recursive(albums: &'a HashMap<i32, Album>) -> Self {
-        Self { albums, max_depth: 255 }
+        Self {
+            albums,
+            max_depth: 255,
+        }
     }
 
     fn build_album_path_recursively(&self, id: i32, depth: u8) -> PathBuf {
@@ -124,7 +125,6 @@ impl<'a> GroupByAlbum<'a> {
 }
 
 impl<'a> MapAsset for GroupByAlbum<'a> {
-
     fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
         if let Some(album_id) = mapping.album_id {
             let album_path = self.build_album_path_recursively(album_id, self.max_depth);
@@ -137,7 +137,6 @@ impl<'a> MapAsset for GroupByAlbum<'a> {
         }
     }
 }
-
 
 /// A mapper that groups assets by year and month.
 #[derive(new)]
@@ -155,7 +154,6 @@ impl MapAsset for GroupByYearAndMonth {
         }
     }
 }
-
 
 /// A mapper that groups assets by year, month, and album.
 #[derive(new)]
@@ -189,7 +187,6 @@ impl<'a> MapAsset for GroupByYearMonthAndAlbum<'a> {
     }
 }
 
-
 pub enum AlbumFilterMode {
     Include,
     Exclude,
@@ -204,7 +201,11 @@ pub struct FilterByAlbumId {
 
 impl MapExportTask for FilterByAlbumId {
     fn map_export_task(&self, task: ExportTask) -> TaskMapperResult {
-        if let ExportTask::Copy(AssetMapping { album_id: Some(album_id), .. }) = &task {
+        if let ExportTask::Copy(AssetMapping {
+            album_id: Some(album_id),
+            ..
+        }) = &task
+        {
             let matches_filter = self.ids.contains(&album_id);
 
             let include = match self.mode {
@@ -220,7 +221,6 @@ impl MapExportTask for FilterByAlbumId {
     }
 }
 
-
 /// A mapper that creates one export task per album the asset is part of.
 ///
 /// This is needed because an asset can be part of multiple albums, but the export task
@@ -229,7 +229,7 @@ impl MapExportTask for FilterByAlbumId {
 #[derive(new)]
 pub struct OneTaskPerAlbum;
 
-// TODO Fixme 
+// TODO Fixme
 impl MapExportTask for OneTaskPerAlbum {
     fn map_export_task(&self, task: ExportTask) -> TaskMapperResult {
         if let ExportTask::Copy(m) = &task {
@@ -237,17 +237,13 @@ impl MapExportTask for OneTaskPerAlbum {
                 let mut tasks: Vec<ExportTask> = vec![];
 
                 for album_id in &m.asset.album_ids {
-                    tasks.push(
-                        ExportTask::Copy(
-                            AssetMapping {
-                                album_id: Some(album_id.clone()),
-                                ..m.clone()
-                            }
-                        )
-                    )
+                    tasks.push(ExportTask::Copy(AssetMapping {
+                        album_id: Some(album_id.clone()),
+                        ..m.clone()
+                    }))
                 }
 
-                return TaskMapperResult::Split(tasks)
+                return TaskMapperResult::Split(tasks);
             }
         }
 
@@ -261,8 +257,10 @@ pub struct ConvertToAbsolutePath {
 }
 
 impl ConvertToAbsolutePath {
-    pub fn new<P : Into<PathBuf>>(output_dir: P) -> ConvertToAbsolutePath {
-        Self { output_dir: output_dir.into() }
+    pub fn new<P: Into<PathBuf>>(output_dir: P) -> ConvertToAbsolutePath {
+        Self {
+            output_dir: output_dir.into(),
+        }
     }
 }
 

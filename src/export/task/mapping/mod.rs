@@ -17,7 +17,6 @@ pub enum TaskMapperResult {
     Split(Vec<ExportTask>),
 }
 
-
 /// A trait for mapping export tasks.
 ///
 /// This trait is used to transform an `ExportTask` into another `ExportTask` or filter it out.
@@ -42,13 +41,11 @@ pub trait MapAsset {
     fn map_asset(&self, mapping: AssetMapping) -> AssetMapping;
 }
 
-impl<A : MapAsset> MapExportTask for A {
+impl<A: MapAsset> MapExportTask for A {
     fn map_export_task(&self, task: ExportTask) -> TaskMapperResult {
-        TaskMapperResult::Map(
-            match task {
-                ExportTask::Copy(mapping) => ExportTask::Copy(self.map_asset(mapping)),
-                ExportTask::Delete(_) => task
-            }
-        )
+        TaskMapperResult::Map(match task {
+            ExportTask::Copy(mapping) => ExportTask::Copy(self.map_asset(mapping)),
+            ExportTask::Delete(_) => task,
+        })
     }
 }

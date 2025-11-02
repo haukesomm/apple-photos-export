@@ -1,30 +1,28 @@
-/// Represents a 
+/// Represents a
 /// [uniform type identifier](https://developer.apple.com/documentation/uniformtypeidentifiers) that
 /// is used to identify the file type of an asset.
-/// 
+///
 /// This struct stores the identifier of the UTI, a compact version of the identifier, the file
 /// extension associated with the UTI, and a suffix that is appended to all derived assets of that
 /// type when stored in the Photos library (e.g. edited photos).
-/// 
+///
 /// All known UTIs are stored as constants on the `Uti` struct. While the respective API could be
 /// used to handle UTIs, it is not available on other platforms than Apple's operating systems.
-/// 
+///
 /// Additionally, methods to determine the UTI from a file extension or an identifier are provided
 /// as struct-level methods.
 #[derive(Clone)]
 pub struct Uti {
-    
     /// File extension associated with the UTI.
     pub ext: &'static str,
-    
-    /// Suffix that is appended to all derived assets of that type when stored in the Photos 
+
+    /// Suffix that is appended to all derived assets of that type when stored in the Photos
     /// library.
     pub derivate_suffix: &'static str,
 }
 
-
 /// Macro used to define the known UTIs as constants on the `Uti` struct.
-/// 
+///
 /// While the respective constants could be defined manually, this macro also generates the getter
 /// methods used to determine the UTI from a file extension or an identifier.
 ///This way, it is not necessary to manually define the getter methods for each UTI and keep them in
@@ -49,7 +47,6 @@ macro_rules! uti_constants {
          }
     };
 }
-
 
 /// Suffix that is appended to all derived _image_ assets when stored in the Photos library.
 const DERIVATE_SUFFIX_IMG: &'static str = "_1_201_a";

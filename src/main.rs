@@ -12,14 +12,14 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::rc::Rc;
 
+mod album_list;
+mod cocoa_time;
+mod confirmation;
 mod db;
+mod export;
+pub mod fs;
 mod model;
 mod result;
-mod album_list;
-mod export;
-mod confirmation;
-pub mod fs;
-mod cocoa_time;
 mod uti;
 
 /// Export photos from the macOS Photos library, organized by album and/or date.
@@ -72,7 +72,7 @@ pub struct ExportArgs {
     year_month_album: bool,
 
     /// Include assets in the albums matching the given ids
-    /// 
+    ///
     /// Note: This option only has an effect when using an album-based grouping strategy!
     #[arg(
         short = 'a', 
@@ -118,7 +118,7 @@ pub struct ExportArgs {
     /// Don't copy files that already exist in the output directory.
     #[arg(short = 's', long = "skip")]
     skip_existing: bool,
-    
+
     /// Delete files in the output directory that are not part of the current export.
     #[arg(long = "delete")]
     delete: bool,
@@ -127,7 +127,6 @@ pub struct ExportArgs {
     #[arg(short = 'd', long = "dry-run")]
     dry_run: bool,
 }
-
 
 fn main() {
     let args = Arguments::parse();
@@ -141,37 +140,40 @@ fn main() {
                 let version = db::with_connection(&db_path, db::get_version_number)?;
 
                 let version_range = db::VersionRange::from_version_number(version)?;
-                println!("Library version: {} ({})", version, version_range.description)
+                println!(
+                    "Library version: {} ({})",
+                    version, version_range.description
+                )
             }
             Commands::ListAlbums => {
                 let albums = db::with_connection(&db_path, |conn| {
                     use db::*;
-                    
+
                     perform_version_check(conn)?;
-                    
+
                     get_all_albums(conn)
                 })?;
                 album_list::print_album_tree(&albums)?
             }
             Commands::Export(export_args) => {
-                let (albums, asset_count, exportable_assets) = db::with_connection(&db_path, |conn| {
-                    use db::*;
-                    
-                    perform_version_check(conn)?;
-                    
-                    Ok((
-                       get_all_albums(conn)?
-                           .into_iter()
-                           .map(|album| (album.id, album))
-                           .collect(),
-                        get_visible_count(conn)?,
-                        get_exportable_assets(conn)?
-                    ))
-                })?;
-                
+                let (albums, asset_count, exportable_assets) =
+                    db::with_connection(&db_path, |conn| {
+                        use db::*;
+
+                        perform_version_check(conn)?;
+
+                        Ok((
+                            get_all_albums(conn)?
+                                .into_iter()
+                                .map(|album| (album.id, album))
+                                .collect(),
+                            get_visible_count(conn)?,
+                            get_exportable_assets(conn)?,
+                        ))
+                    })?;
+
                 let exportable_asset_count = exportable_assets.len();
-                
-                
+
                 let mut builder = {
                     use export::factory::ExportTaskFactory;
                     if export_args.include_edited {
@@ -182,7 +184,7 @@ fn main() {
                         ExportTaskFactory::new_for_originals(library.clone())
                     }
                 };
-                
+
                 if export_args.restore_original_filenames {
                     builder.add_mapper(mappers::RestoreOriginalFilenames::new())
                 }
@@ -190,10 +192,10 @@ fn main() {
                 if export_args.include_edited {
                     builder.add_mapper(mappers::MarkOriginalsAndDerivates::new())
                 }
-                
+
                 if export_args.album || export_args.year_month_album {
                     builder.add_mapper(mappers::OneTaskPerAlbum::new());
-                    
+
                     if export_args.flatten_albums {
                         builder.add_mapper(mappers::GroupByAlbum::flat(&albums))
                     } else {
@@ -204,27 +206,23 @@ fn main() {
                 if export_args.year_month_album {
                     builder.add_mapper(mappers::GroupByYearMonthAndAlbum::new(&albums))
                 }
-                
+
                 if export_args.year_month {
                     builder.add_mapper(mappers::GroupByYearAndMonth::new())
                 }
-                
+
                 if let Some(ids) = &export_args.include_by_album {
-                    builder.add_mapper(
-                        mappers::FilterByAlbumId::new(
-                            ids.clone(), 
-                            mappers::AlbumFilterMode::Include
-                        )
-                    );
+                    builder.add_mapper(mappers::FilterByAlbumId::new(
+                        ids.clone(),
+                        mappers::AlbumFilterMode::Include,
+                    ));
                 }
 
                 if let Some(ids) = &export_args.exclude_by_album {
-                    builder.add_mapper(
-                        mappers::FilterByAlbumId::new(
-                            ids.clone(),
-                            mappers::AlbumFilterMode::Exclude
-                        )
-                    );
+                    builder.add_mapper(mappers::FilterByAlbumId::new(
+                        ids.clone(),
+                        mappers::AlbumFilterMode::Exclude,
+                    ));
                 }
 
                 if export_args.visible {
@@ -232,11 +230,9 @@ fn main() {
                 } else {
                     builder.add_mapper(mappers::PrefixHidden::new())
                 }
-                
-                
+
                 builder.add_mapper(mappers::ConvertToAbsolutePath::new(&export_args.output_dir));
-                
-                
+
                 // Keep track of existing files in the output directory
                 //
                 // This is used for the 'skip existing' and 'delete' options:
@@ -248,45 +244,48 @@ fn main() {
                 // we mark files that are going to be exported as 'handled' via the `SkipIfExists` mapper.
                 // Finally, after building the export tasks, we can determine which files are unhandled
                 // and create delete tasks for them.
-                let existing_unhandled_output_files: Rc<RefCell<HashSet<PathBuf>>> = Rc::new(RefCell::new(HashSet::new()));
-                
+                let existing_unhandled_output_files: Rc<RefCell<HashSet<PathBuf>>> =
+                    Rc::new(RefCell::new(HashSet::new()));
+
                 if export_args.skip_existing || export_args.delete {
-                    println!("Indexing existing files in output directory (this may take some time) ...");
+                    println!(
+                        "Indexing existing files in output directory (this may take some time) ..."
+                    );
                     existing_unhandled_output_files
                         .borrow_mut()
                         .extend(fs::recursively_get_files(&export_args.output_dir));
 
                     if export_args.skip_existing {
-                        builder.add_mapper(mappers::SkipIfExists::new(Rc::clone(&existing_unhandled_output_files)));
+                        builder.add_mapper(mappers::SkipIfExists::new(Rc::clone(
+                            &existing_unhandled_output_files,
+                        )));
                     }
-                    
-                    builder.add_mapper(mappers::RemoveFromCacheIfExists::new(Rc::clone(&existing_unhandled_output_files)));
+
+                    builder.add_mapper(mappers::RemoveFromCacheIfExists::new(Rc::clone(
+                        &existing_unhandled_output_files,
+                    )));
                 }
-                
-                
+
                 let mut export_tasks = builder.build(exportable_assets);
-                
-                
+
                 if export_args.delete {
                     let borrow = existing_unhandled_output_files.borrow();
                     let delete_tasks = export::task::create_delete_tasks(borrow.iter());
                     export_tasks.extend(delete_tasks);
                 }
-                
-                
+
                 let engine: ExportEngine = if export_args.dry_run {
                     ExportEngine::dry_run()
                 } else {
                     ExportEngine::new()
                 };
-                
-                
+
                 let export_metadata = ExportMetadata {
                     total_asset_count: asset_count,
                     exportable_asset_count,
-                    export_task_count: export_tasks.len()
+                    export_task_count: export_tasks.len(),
                 };
-                
+
                 engine.run_export(export_tasks, export_metadata)?;
             }
         }
@@ -295,9 +294,8 @@ fn main() {
     })
 }
 
-
 /// Run the given function and handle any errors that occur.
-/// 
+///
 /// Errors are saved to a log file and a message is printed to the console.
 fn run_with_result_handling<F, R>(function: F)
 where
@@ -307,10 +305,10 @@ where
         match e {
             Error::General(msg) => {
                 eprintln!("{}", msg.bright_red());
-            },
+            }
             Error::Database(err) => {
                 eprintln!(
-                    "{}", 
+                    "{}",
                     format!("An error occurred connecting to the database: {}", err).bright_red()
                 );
             }
@@ -319,10 +317,13 @@ where
                     .unwrap_or_else(|e| panic!("Unable to write error log: {}", e));
 
                 eprintln!();
-                eprintln!("{}", "One or more errors occurred during the export!".bright_red());
+                eprintln!(
+                    "{}",
+                    "One or more errors occurred during the export!".bright_red()
+                );
 
                 let logfile_msg = format!(
-                    "For more information, see the error log at '{}'", 
+                    "For more information, see the error log at '{}'",
                     err_log_file
                 );
                 eprintln!("{}", logfile_msg.bright_red());
@@ -341,9 +342,9 @@ fn _write_export_error_log(log: &Vec<String>) -> std::result::Result<String, Str
 
     let filename = format!("apple-photos-export-{}.log", random_suffix);
 
-    let mut report = File::create(&filename)
-        .map_err(|e| format!("Unable to create error log: {}", e))?;
-    
+    let mut report =
+        File::create(&filename).map_err(|e| format!("Unable to create error log: {}", e))?;
+
     for error in log {
         report
             .write(error.as_bytes())
@@ -353,30 +354,25 @@ fn _write_export_error_log(log: &Vec<String>) -> std::result::Result<String, Str
     Ok(filename)
 }
 
-
 /// Performs a version check on the database and returns an error if the version is not
 /// supported.
 fn perform_version_check(db_conn: &rusqlite::Connection) -> Result<()> {
     use db::*;
-    
+
     let version_number = get_version_number(db_conn)?;
     let version_range = VersionRange::from_version_number(version_number)?;
     let supported = CURRENTLY_SUPPORTED_VERSION;
-    
+
     if version_number < supported.start || version_number > supported.end {
-        Err(
-            Error::General(
-                format!(
-                    "Unsupported library version!\nYour version: {} ({})\n\
+        Err(Error::General(format!(
+            "Unsupported library version!\nYour version: {} ({})\n\
                     Currently supported version: {} ({} to {})",
-                    version_range.description,
-                    version_number,
-                    supported.description,
-                    supported.start,
-                    supported.end
-                )
-            )
-        )
+            version_range.description,
+            version_number,
+            supported.description,
+            supported.start,
+            supported.end
+        )))
     } else {
         Ok(())
     }

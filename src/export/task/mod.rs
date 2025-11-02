@@ -1,9 +1,9 @@
 pub mod mapping;
 
+use crate::model::{Asset, Library};
+use colored::Colorize;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
-use colored::Colorize;
-use crate::model::{Asset, Library};
 
 #[derive(Clone)]
 pub enum ExportTask {
@@ -22,7 +22,6 @@ pub struct AssetMapping {
 }
 
 impl AssetMapping {
-
     pub fn for_original(lib: &Library, asset: Asset) -> Self {
         Self {
             asset: asset.clone(),
@@ -44,16 +43,14 @@ impl AssetMapping {
         let mut output_filename = PathBuf::from(&asset.filename);
         output_filename.set_extension(asset.derivate_uti.ext);
 
-        Some(
-            Self {
-                asset: asset.clone(),
-                source: path,
-                destination: output_filename,
-                is_derivate: true,
-                album_id: None,
-                skip: false,
-            }
-        )
+        Some(Self {
+            asset: asset.clone(),
+            source: path,
+            destination: output_filename,
+            is_derivate: true,
+            album_id: None,
+            skip: false,
+        })
     }
 }
 
@@ -68,7 +65,11 @@ impl Display for AssetMapping {
         }
 
         if let Some(album_id) = self.album_id {
-            write!(f, ", {}", format!("album #{}", album_id.to_string()).magenta())?;
+            write!(
+                f,
+                ", {}",
+                format!("album #{}", album_id.to_string()).magenta()
+            )?;
         }
 
         write!(f, ") ")?;
@@ -84,8 +85,11 @@ impl Display for AssetMapping {
 
 pub fn create_delete_tasks<P, I>(paths: I) -> Vec<ExportTask>
 where
-    P : Into<PathBuf>,
-    I : IntoIterator<Item = P>
+    P: Into<PathBuf>,
+    I: IntoIterator<Item = P>,
 {
-    paths.into_iter().map(|p| ExportTask::Delete(p.into())).collect()
+    paths
+        .into_iter()
+        .map(|p| ExportTask::Delete(p.into()))
+        .collect()
 }

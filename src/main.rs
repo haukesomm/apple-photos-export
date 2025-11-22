@@ -334,8 +334,8 @@ where
 
 /// Writes the given log string to a file and returns the filename.
 fn _write_export_error_log(log: &Vec<String>) -> std::result::Result<String, String> {
-    let random_suffix: String = rand::thread_rng()
-        .sample_iter(&rand::distributions::Alphanumeric)
+    let random_suffix: String = rand::rng()
+        .sample_iter(&rand::distr::Alphanumeric)
         .take(8)
         .map(char::from)
         .collect();

@@ -1,0 +1,27 @@
+name: Publish release artifacts to Homebrew
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  publish_to_homebrew:
+    name: Publish to Homebrew tap
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get release version from the tag
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Publish to Homebrew
+        uses: Justintime50/homebrew-releaser@v3
+        with:
+          homebrew_owner: haukesomm
+          homebrew_tap: homebrew-repo
+          formula_folder: Formula
+          github_token: ${{ secrets.HOMEBREW_PUBLISHING_TOKEN }}
+          commit_owner: Hauke Sommerfeld
+          commit_email: development@haukesomm.de
+          version: ${{ env.VERSION }}
+          target_darwin_arm64: true
+          install: 'bin.install "apple-photos-export"'

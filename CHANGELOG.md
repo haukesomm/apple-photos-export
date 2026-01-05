@@ -2,7 +2,7 @@
 
 The following is a list of changes made to the project in reverse chronological order.
 
-## `1.1.0-SNAPSHOT`
+## `1.1.0`
 
 ### New output options
 

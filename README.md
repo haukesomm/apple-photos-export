@@ -2,9 +2,8 @@
 
 ![Rust](https://img.shields.io/badge/Rust-d6a672?style=for-the-badge&logo=rust)
 
-This program exports all images and videos from an Apple Photos Library to a local directory, making the files easily
-accessible without the need to use the native Photos app.
-It is intended for backup purposes and does not modify the library in any way.
+This utility program exports all images and videos from an Apple Photos Library to a local directory for backup
+purposes. The library is accesses in a read-only and thus, does not modify it at all. 
 
 > [!IMPORTANT]
 > The project works by reverse-engineering the Apple Photos Library database and file structure. Thus, it is not
@@ -13,14 +12,19 @@ It is intended for backup purposes and does not modify the library in any way.
 
 ## Highlights
 
-- Lists all albums of the library as an ascii tree
-- Exports all images and videos from the Photos Library to a local directory
-- Different export album structures are supported (overview below)
+Features of this program include (but are not limited to):
+
+- List all albums of the library
+- Export all images and videos from the Photos Library to a local directory
+- Different export album structures are supported, e.g.:
     - Flat (default)
-    - Album
-    - Year/Month
-    - Year/Month/Album
-- Optionally restores the original file names that were used when importing the files into the library
+    - By album
+    - By year/month
+    - By year/month/album
+- Restore original filenames used when importing the assets into the library
+- Sync mode: 
+  - Skip assets that already have been exported
+  - Delete existing assets that are no longer part of the library
 - Dry-run mode to test the export without actually copying any files
 
 ## Compatibility
@@ -43,26 +47,33 @@ The following versions of the app are compatible with the following macOS/Photos
 
 For an overview of the changes made between each version, please have a look at the [CHANGELOG](CHANGELOG.md).
 
-## Usage
+## Installation
 
-### Building and Running locally
+Builds of this app are automatically published on release. You can find the binaries attached to the respective
+GitHub release.
 
-```shell
-$ cargo build --release
-$ ./target/release/apple-photos-export --help
-```
-
-### Installation via Homebrew
+On macOS, the preferred way of installing this app is via Homebrew:
 
 ```shell
 $ brew install haukesomm/repo/apple-photos-export
 ```
 
-OR
+> [!IMPORTANT]
+> Releases of this app are _not signed_.  
+> macOS will complain about this and refuse to execute the app until you painstakingly white-list it via the system
+> settings. Thanks for nothing, Apple.
+
+> [!IMPORTANT]
+> Currently, binaries of this app are only provided for __macOS on ARM__, i.e. M-series Macs.  
+> Attempting to install the Homebrew formula on other platforms will result in an unspecific error.
+> 
+> Users on other OSs/architectures should be able to build the app locally on most other Unix-like operating systems,
+> though.
+
+Of course, the latest commits can alwas be built locally as well with no special magic required:
 
 ```shell
-$ brew tap haukesomm/repo
-$ brew install apple-photos-export
+cargo build
 ```
 
 ### Listing albums

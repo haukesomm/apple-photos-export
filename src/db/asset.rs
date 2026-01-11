@@ -15,8 +15,21 @@ pub fn get_visible_count(conn: &rusqlite::Connection) -> crate::Result<usize> {
 /// part of the "hidden" album or moved to the trash, and are locally available in the library
 /// file.
 pub fn get_exportable_assets(conn: &rusqlite::Connection) -> crate::Result<Vec<Asset>> {
-    let raw_sql = include_str!("../../queries/get_exportable_assets.sql");
-    let mut stmt = conn.prepare(raw_sql)?;
+    // Get the Z_ENT value for Asset entity
+    let asset_z_ent_sql = include_str!("../../queries/get_asset_z_ent.sql");
+    let asset_z_ent: i32 = conn.query_row(asset_z_ent_sql, [], |row| row.get(0))?;
+
+    // Get the Z_ENT value for Album entity
+    let album_z_ent_sql = include_str!("../../queries/get_album_z_ent.sql");
+    let album_z_ent: i32 = conn.query_row(album_z_ent_sql, [], |row| row.get(0))?;
+
+    // Load the SQL template and replace the placeholders with actual Z_ENT values
+    let raw_sql_template = include_str!("../../queries/get_exportable_assets.sql");
+    let raw_sql = raw_sql_template
+        .replace("_ALBUM_Z_ENT_", &album_z_ent.to_string())
+        .replace("_ASSET_Z_ENT_", &asset_z_ent.to_string());
+
+    let mut stmt = conn.prepare(&raw_sql)?;
 
     let assets: crate::Result<Vec<Asset>> = stmt
         .query_and_then([], |row| {

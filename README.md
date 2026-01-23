@@ -76,6 +76,8 @@ Of course, the latest commits can alwas be built locally as well with no special
 cargo build
 ```
 
+## Usage
+
 ### Listing albums
 
 ```shell
@@ -125,32 +127,44 @@ point.
 > [!IMPORTANT]
 > Remember to test the different configuration options using the `-d` flag (dry-run) before running any actual exports!
 
-##### Full export structured by year/month/album
+  <details>
+    <summary>Example usage snippets</summary>
 
-- Exports everything, including hidden assets
-- Restores the original filenames used when importing the assets to the library
-- Groups the assets in a `Year/Month/Album` structure
-- Includes both the original and edited versions of each asset
-- Flattens the album structure
+  ##### Full export structured by year/month/album
+  
+  - Exports everything, including hidden assets
+    - Restores the original filenames used when importing the assets to the library
+    - Groups the assets in a `Year/Month/Album` structure
+    - Includes both the original and edited versions of each asset
+    - Flattens the album structure
+  
+  ```shell
+  $ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -Mrfe
+  ```
+  
+  ##### Only include assets that are part of one or more albums
+  
+  - Exports all assets that _are_ part of the given albums (in this case `700` and `701`)
+    - Album IDs can be obtained via the `list-albums` command
+  
+  ```shell
+  $ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -a=700,701
+  ```
+  
+  ##### Exclude assets that are part of at least one given album
+  
+  - Exports all assets that _are not_ part of any of the given albums (in this case `700` and `701`)
+    - Album IDs can be obtained via the `list-albums` command
+  
+  ```shell
+  $ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -A=700,701
+  ```
 
-```shell
-$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -Mrfe
-```
+  </details>
 
-##### Only include assets that are part of one or more albums
+## Contributing
 
-- Exports all assets that _are_ part of the given albums (in this case `700` and `701`)
-  - Album IDs can be obtained via the `list-albums` command
+Contributions to this project are always welcome! 🎉
 
-```shell
-$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -a=700,701
-```
-
-##### Exclude assets that are part of at least one given album
-
-- Exports all assets that _are not_ part of any of the given albums (in this case `700` and `701`)
-  - Album IDs can be obtained via the `list-albums` command
-
-```shell
-$ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -A=700,701
-```
+When opening a PR, please consider the following requirements:
+1) This project uses conventional commit messages. If you open a PR, make sure your commits are structured accordingly.

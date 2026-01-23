@@ -62,13 +62,19 @@ jobs:
           echo "ASSET=$ZIP_FILE_NAME" >> $GITHUB_ENV
           echo "NUMERICAL_VERSION=$NUMERICAL_VERSION" >> $GITHUB_ENV
 
+      - name: Generate changelog
+        id: changelog
+        uses: requarks/changelog-action@v1.10.3
+        with:
+          token: ${{ github.token }}
+          tag: ${{ github.ref_name }}
+          useGitmojis: true
+
       - name: Create release and upload binaries
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ env.VERSION }}
-          body: |
-            This release has been generated automatically. Please refer to the project's `CHANGELOG.md` file for more
-            information.
+          body: ${{ steps.changelog.outputs.changes }}
           draft: true
           tag_name: ${{ env.VERSION }}
           files: |

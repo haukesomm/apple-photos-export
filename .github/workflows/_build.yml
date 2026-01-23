@@ -1,0 +1,45 @@
+name: Common build
+on:
+  workflow_call:
+    inputs:
+      host_os:
+        type: string
+        required: true
+      target:
+        type: string
+        required: true
+      compiler_args:
+        type: string
+        required: false
+        default: ''
+      upload_artifacts:
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ inputs.host_os }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ inputs.target }}
+
+      - name: Compile
+        uses: houseabsolute/actions-rust-cross@v1
+        with:
+          command: build
+          target: ${{ inputs.target }}
+          args: ${{ inputs.compiler_args }}
+
+      - name: Upload artifacts
+        if: ${{ inputs.upload_artifacts }}
+        uses: actions/upload-artifact@v6
+        with:
+          path: './target/${{ inputs.target }}/'
+          name: 'target-${{ inputs.target }}'

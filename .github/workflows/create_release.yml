@@ -1,4 +1,4 @@
-name: Build and upload release artifacts
+name: Build and create draft release
 on:
   push:
     tags:
@@ -6,41 +6,47 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-upload:
-    name: Build and upload
-    runs-on: ${{ matrix.os }}
+  build:
+    name: Build
 
     strategy:
       matrix:
         include:
-          - build: macos-arm
-            os: macos-latest
+          - host_os: macos-latest
             target: aarch64-apple-darwin
+
+    uses: ./.github/workflows/_build.yml
+    with:
+      host_os: ${{ matrix.host_os }}
+      target: ${{ matrix.target }}
+      compiler_args: '--locked --release'
+      upload_artifacts: true
+
+  upload:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    needs: build
+
+    strategy:
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
             # This is needed in order to generate a compliant tar ^archive name for `Justintime50/homebrew-releaser@v3`.
             # The above action requires the archives to have a very specific name that includes the target architecture.
             # The target uses a different naming schema than the standard rustc targets, though.
             tarball_name_target: darwin-arm64
 
     steps:
-      - name: Clone repository
-        uses: actions/checkout@v5
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Get release version from the tag
+      - name: Get release version from tag
         shell: bash
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-      - name: Build binary
-        uses: houseabsolute/actions-rust-cross@v1
+      - name: Download compiled artifact
+        uses: actions/download-artifact@v6
         with:
-          command: build
-          target: ${{ matrix.target }}
-          args: "--locked --release"
-          strip: true
+          # Name of the artifact uploaded by the common build workflow (_build.yml)
+          name: 'target-${{ matrix.target }}'
+          path: 'target'
 
       - name: Compress binary
         shell: bash
@@ -51,7 +57,7 @@ jobs:
           NUMERICAL_VERSION=${VERSION#v}
           
           ZIP_FILE_NAME="${APP_NAME}-${NUMERICAL_VERSION}-${{ matrix.tarball_name_target }}.tar.gz"
-          tar -czf $ZIP_FILE_NAME -C target/${{ matrix.target }}/release/ ./$APP_NAME
+          tar -czf $ZIP_FILE_NAME -C target/release/ ./$APP_NAME
           
           echo "ASSET=$ZIP_FILE_NAME" >> $GITHUB_ENV
           echo "NUMERICAL_VERSION=$NUMERICAL_VERSION" >> $GITHUB_ENV

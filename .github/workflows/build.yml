@@ -7,27 +7,15 @@ on:
 
 jobs:
   build:
-    name: Build PR
-    runs-on: ${{ matrix.os }}
+    name: Build
 
     strategy:
       matrix:
         include:
-          - build: macos-arm
-            os: macos-latest
+          - host_os: macos-latest
             target: aarch64-apple-darwin
 
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v5
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Build binary
-        uses: houseabsolute/actions-rust-cross@v1
-        with:
-          command: build
-          target: ${{ matrix.target }}
+    uses: ./.github/workflows/_build.yml
+    with:
+      host_os: ${{ matrix.host_os }}
+      target: ${{ matrix.target }}

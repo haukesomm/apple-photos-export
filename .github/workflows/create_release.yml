@@ -69,6 +69,7 @@ jobs:
           token: ${{ github.token }}
           tag: ${{ github.ref_name }}
           useGitmojis: true
+          excludeScopes: 'no_changelog'
 
       - name: Create release and upload binaries
         uses: softprops/action-gh-release@v2

@@ -55,22 +55,30 @@ const DERIVATE_SUFFIX_IMG: &'static str = "_1_201_a";
 const DERIVATE_SUFFIX_VID: &'static str = "_2_0_a";
 
 uti_constants! {
-    JPEG("public.jpeg", "jpeg", DERIVATE_SUFFIX_IMG),
-    HEIC("public.heic", "heic", DERIVATE_SUFFIX_IMG),
-    PNG("public.png", "png", DERIVATE_SUFFIX_IMG),
+    // Image formats
+    BMP("com.microsoft.bmp", "bmp", DERIVATE_SUFFIX_IMG),
     GIF("com.compuserve.gif", "gif", DERIVATE_SUFFIX_IMG),
+    GPP("public.3gpp", "3gp", DERIVATE_SUFFIX_VID),
+    HEIC("public.heic", "heic", DERIVATE_SUFFIX_IMG),
+    JPEG("public.jpeg", "jpeg", DERIVATE_SUFFIX_IMG),
+    PNG("public.png", "png", DERIVATE_SUFFIX_IMG),
+    PSD("com.adobe.photoshop-image", "psd", DERIVATE_SUFFIX_IMG),
+    TIFF("public.tiff", "tiff", DERIVATE_SUFFIX_IMG),
+    WEBP("org.webmproject.webp", "webp", DERIVATE_SUFFIX_IMG),
+
+    // Raw image formats
+    ARW("com.sony.arw-raw-image", "arw", DERIVATE_SUFFIX_IMG),
+    CR2("com.canon.cr2-raw-image", "cr2", DERIVATE_SUFFIX_IMG),
     DNG("com.adobe.raw-image", "dng", DERIVATE_SUFFIX_IMG),
     RAF("com.fuji.raw-image", "raf", DERIVATE_SUFFIX_IMG),
-    ARW("com.sony.arw-raw-image", "arw", DERIVATE_SUFFIX_IMG),
-    TIFF("public.tiff", "tiff", DERIVATE_SUFFIX_IMG),
-    PSD("com.adobe.photoshop-image", "psd", DERIVATE_SUFFIX_IMG),
+
+    // Movie formats
+    AVI("public.avi", "avi", DERIVATE_SUFFIX_VID),
     MOV("com.apple.quicktime-movie", "mov", DERIVATE_SUFFIX_VID),
     MP4("public.mpeg-4", "mp4", DERIVATE_SUFFIX_VID),
     MPEG("public.mpeg", "mpg", DERIVATE_SUFFIX_VID),
-    AVI("public.avi", "avi", DERIVATE_SUFFIX_VID),
-    BMP("com.microsoft.bmp", "bmp", DERIVATE_SUFFIX_IMG),
     M4V("com.apple.m4v-video", "m4v", DERIVATE_SUFFIX_VID),
-    GPP("public.3gpp", "3gp", DERIVATE_SUFFIX_VID),
-    CR2("com.canon.cr2-raw-image", "cr2", DERIVATE_SUFFIX_IMG),
+
+    // Fallback
     GENERIC_CONTENT("public.content", "bin", DERIVATE_SUFFIX_IMG) // For unknown UTIs
 }

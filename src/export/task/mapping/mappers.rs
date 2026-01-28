@@ -3,6 +3,7 @@ use crate::export::task::{AssetMapping, ExportTask};
 use crate::model::album::Album;
 use chrono::Datelike;
 use derive_new::new;
+use soft_canonicalize::soft_canonicalize;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
@@ -266,8 +267,21 @@ impl ConvertToAbsolutePath {
 
 impl MapAsset for ConvertToAbsolutePath {
     fn map_asset(&self, task: AssetMapping) -> AssetMapping {
+        let absolute_path = self.output_dir.join(&task.destination);
+
+        // Try to canonicalize paths in order to be able to compare them across multiple file
+        // systems, e.g. when working with mounted SAMBA shares in combination with the --skip or
+        // --delete flags.
+        let destination = soft_canonicalize(&absolute_path).unwrap_or_else(|_| {
+            eprintln!(
+                "Unable to canonicalize path!: {}",
+                task.destination.to_string_lossy()
+            );
+            self.output_dir.clone()
+        });
+
         AssetMapping {
-            destination: self.output_dir.join(task.destination),
+            destination,
             ..task
         }
     }

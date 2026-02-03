@@ -176,15 +176,15 @@ fn main() {
                 };
 
                 if export_args.restore_original_filenames {
-                    builder.add_mapper(mappers::RestoreOriginalFilenames::new())
+                    builder.add_mapper(mappers::RestoreOriginalFilenames)
                 }
 
                 if export_args.include_edited {
-                    builder.add_mapper(mappers::MarkOriginalsAndDerivates::new())
+                    builder.add_mapper(mappers::MarkOriginalsAndDerivates)
                 }
 
                 if export_args.album || export_args.year_month_album {
-                    builder.add_mapper(mappers::OneTaskPerAlbum::new());
+                    builder.add_mapper(mappers::OneTaskPerAlbum);
 
                     if export_args.flatten_albums {
                         builder.add_mapper(mappers::GroupByAlbum::flat(&albums))
@@ -198,7 +198,7 @@ fn main() {
                 }
 
                 if export_args.year_month {
-                    builder.add_mapper(mappers::GroupByYearAndMonth::new())
+                    builder.add_mapper(mappers::GroupByYearAndMonth)
                 }
 
                 if let Some(ids) = &export_args.include_by_album {
@@ -216,9 +216,9 @@ fn main() {
                 }
 
                 if export_args.visible {
-                    builder.add_mapper(mappers::ExcludeHidden::new())
+                    builder.add_mapper(mappers::ExcludeHidden)
                 } else {
-                    builder.add_mapper(mappers::PrefixHidden::new())
+                    builder.add_mapper(mappers::PrefixHidden)
                 }
 
                 builder.add_mapper(mappers::ConvertToAbsolutePath::new(&export_args.output_dir));
@@ -239,7 +239,7 @@ fn main() {
 
                 if export_args.skip_existing || export_args.delete {
                     println!(
-                        "Indexing existing files in output directory (this may take some time) ..."
+                        "Indexing existing files in output directory (this may take a long time) ..."
                     );
                     existing_unhandled_output_files
                         .borrow_mut()

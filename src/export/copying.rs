@@ -1,6 +1,5 @@
 use crate::export::task::AssetMapping;
 use colored::Colorize;
-use derive_new::new;
 use std::path::Path;
 
 /// Implementors of this trait are able to copy an Asset from an ExportTasks source to the
@@ -17,7 +16,6 @@ pub trait CopyAsset {
 }
 
 /// Represents a strategy that actually copies Asset using the `std::fs` module.
-#[derive(new)]
 pub struct CopyAssetViaFs;
 
 impl CopyAssetViaFs {
@@ -94,7 +92,6 @@ impl CopyAsset for CopyAssetViaFs {
 }
 
 /// Defines a `dry-run` strategy that does not actually copy any data.
-#[derive(new)]
 pub struct PretendToCopyAsset;
 
 impl CopyAsset for PretendToCopyAsset {

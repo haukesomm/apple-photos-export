@@ -1,3 +1,7 @@
+//! Some basic utilities to prompt the user for confirmation.
+//! 
+//! Everything in here is quite a mess and probably the ugliest part of this application ;-)
+
 use std::io::{stdin, stdout, Read, Write};
 
 const CHARACTER_YES: char = 'y';

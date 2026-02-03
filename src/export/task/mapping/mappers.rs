@@ -11,7 +11,6 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 /// A mapper that excludes hidden assets from the export.
-#[derive(new)]
 pub struct ExcludeHidden;
 
 impl MapExportTask for ExcludeHidden {
@@ -26,7 +25,6 @@ impl MapExportTask for ExcludeHidden {
 }
 
 /// A mapper that prefixes the destination path with "_hidden" for hidden assets.
-#[derive(new)]
 pub struct PrefixHidden;
 
 impl MapAsset for PrefixHidden {
@@ -44,7 +42,6 @@ impl MapAsset for PrefixHidden {
 
 /// A mapper that appends `.original` or `.derivate` to the destination file name based on whether
 /// the asset is a derivative or not.
-#[derive(new)]
 pub struct MarkOriginalsAndDerivates;
 
 impl MapAsset for MarkOriginalsAndDerivates {
@@ -70,7 +67,6 @@ impl MapAsset for MarkOriginalsAndDerivates {
 }
 
 /// A mapper that restores the original file name of the asset in the destination path.
-#[derive(new)]
 pub struct RestoreOriginalFilenames;
 
 impl MapAsset for RestoreOriginalFilenames {
@@ -140,7 +136,6 @@ impl<'a> MapAsset for GroupByAlbum<'a> {
 }
 
 /// A mapper that groups assets by year and month.
-#[derive(new)]
 pub struct GroupByYearAndMonth;
 
 impl MapAsset for GroupByYearAndMonth {
@@ -227,7 +222,6 @@ impl MapExportTask for FilterByAlbumId {
 /// This is needed because an asset can be part of multiple albums, but the export task
 /// structure only maps one source to one destination. This mapper splits the task
 /// into multiple tasks, one for each album the asset is part of.
-#[derive(new)]
 pub struct OneTaskPerAlbum;
 
 // TODO Fixme

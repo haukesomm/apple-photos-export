@@ -137,38 +137,28 @@ fn main() {
     run_with_result_handling(|| {
         match &args.command {
             Commands::LibraryVersion => {
-                let version = db::with_connection(&db_path, db::get_version_number)?;
-
-                let version_range = db::VersionRange::from_version_number(version)?;
-                println!(
-                    "Library version: {} ({})",
-                    version, version_range.description
-                )
+                let version = db::with_connection(&db_path, db::version::get_version)?;
+                println!("Library version: {}", version)
             }
             Commands::ListAlbums => {
                 let albums = db::with_connection(&db_path, |conn| {
-                    use db::*;
-
-                    perform_version_check(conn)?;
-
-                    get_all_albums(conn)
+                    db::version::perform_version_check(conn)?;
+                    db::album::get_all_albums(conn)
                 })?;
                 album_list::print_album_tree(&albums)?
             }
             Commands::Export(export_args) => {
                 let (albums, asset_count, exportable_assets) =
                     db::with_connection(&db_path, |conn| {
-                        use db::*;
-
-                        perform_version_check(conn)?;
+                        db::version::perform_version_check(conn)?;
 
                         Ok((
-                            get_all_albums(conn)?
+                            db::album::get_all_albums(conn)?
                                 .into_iter()
                                 .map(|album| (album.id, album))
                                 .collect(),
-                            get_visible_count(conn)?,
-                            get_exportable_assets(conn)?,
+                            db::asset::get_visible_count(conn)?,
+                            db::asset::get_exportable_assets(conn)?,
                         ))
                     })?;
 
@@ -352,28 +342,4 @@ fn _write_export_error_log(log: &Vec<String>) -> std::result::Result<String, Str
     }
 
     Ok(filename)
-}
-
-/// Performs a version check on the database and returns an error if the version is not
-/// supported.
-fn perform_version_check(db_conn: &rusqlite::Connection) -> Result<()> {
-    use db::*;
-
-    let version_number = get_version_number(db_conn)?;
-    let version_range = VersionRange::from_version_number(version_number)?;
-    let supported = CURRENTLY_SUPPORTED_VERSION;
-
-    if version_number < supported.start || version_number > supported.end {
-        Err(Error::General(format!(
-            "Unsupported library version!\nYour version: {} ({})\n\
-                    Currently supported version: {} ({} to {})",
-            version_range.description,
-            version_number,
-            supported.description,
-            supported.start,
-            supported.end
-        )))
-    } else {
-        Ok(())
-    }
 }

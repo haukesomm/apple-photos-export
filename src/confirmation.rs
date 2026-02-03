@@ -1,4 +1,4 @@
-use std::io::{stdin, stdout, Write};
+use std::io::{stdin, stdout, Read, Write};
 
 const CHARACTER_YES: char = 'y';
 const CHARACTER_NO: char = 'n';
@@ -6,6 +6,12 @@ const CHARACTER_NO: char = 'n';
 pub enum Answer {
     Yes,
     No,
+}
+
+pub fn wait_for_enter_key_press() {
+    print!("Press enter to continue...");
+    let _ = stdout().flush();
+    let _ = stdin().read(&mut []);
 }
 
 pub fn confirmation_prompt(prompt: String) -> Answer {

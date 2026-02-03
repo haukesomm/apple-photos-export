@@ -1,12 +1,8 @@
+use std::path::Path;
+
 pub mod album;
 pub mod asset;
-mod version;
-
-pub use album::get_all_albums;
-pub use asset::get_exportable_assets;
-pub use asset::get_visible_count;
-use std::path::Path;
-pub use version::{get_version_number, VersionRange, CURRENTLY_SUPPORTED_VERSION};
+pub mod version;
 
 /// Execute a closure with a database connection.
 ///

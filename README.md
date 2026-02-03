@@ -3,7 +3,7 @@
 ![Rust](https://img.shields.io/badge/Rust-d6a672?style=for-the-badge&logo=rust)
 
 This utility program exports all images and videos from an Apple Photos Library to a local directory for backup
-purposes. The library is accesses in a read-only and thus, does not modify it at all. 
+purposes. The library is accesses in a read-only and thus, does not modify it at all.
 
 > [!IMPORTANT]
 > The project works by reverse-engineering the Apple Photos Library database and file structure. Thus, it is not
@@ -22,26 +22,39 @@ Features of this program include (but are not limited to):
     - By year/month
     - By year/month/album
 - Restore original filenames used when importing the assets into the library
-- Sync mode: 
-  - Skip assets that already have been exported
-  - Delete existing assets that are no longer part of the library
+- Sync mode:
+    - Skip assets that already have been exported
+    - Delete existing assets that are no longer part of the library
 - Dry-run mode to test the export without actually copying any files
 
 ## Compatibility
 
-> [!NOTE]
-> Currently, each version of this app only works with a specific combination of macOS and the Photos app.  
-> Backwards compatibility to older versions is planned for future releases.
+> [!INFO]
+> This program is intended to work on macOS Sequoia and above.
 
-The following versions of the app are compatible with the following macOS/PhotosLibrary version:
+Compatibility has briefly been tested on the following versions of macOS:
 
-| App version               | macOS Name | macOS Version   | Photos Version | Notes                                                                                                          |
-|:--------------------------|:-----------|:----------------|:---------------|:---------------------------------------------------------------------------------------------------------------|
-| `1.2.0-snapshot`          | Tahoe      | `26`            | `11.0`         |                                                                                                                |
-| `1.1.0`                   | Tahoe      | `26`            | `11.0`         |                                                                                                                |
-| `0.4.0`, `0.4.1`, `1.0.0` | Sequoia    | `15`            | `10.0`         |                                                                                                                |
-| `0.3.0`                   | Sonoma     | `14.6`          | `9.0`          | The internal schema of the Photos app has changed, making this release incompatible with other Sonoma releases |
-| `0.2.0`, `0.1.0`, `0.0.1` | Sonoma     | `14.0` - `14.5` | `9.0 `         |                                                                                                                |
+| Generation | Version | Compatibility |
+|------------|---------|---------------|
+| Tahoe      | 26.2    | ✅             |
+| Tahoe      | 26.1    | ❓             |
+| Tahoe      | 26.0    | ✅             | 
+| Sequioia   | 15.6    | ✅             |
+| Sequioia   | 15.5    | ❓             |
+| Sequioia   | 15.4    | ❓             |
+| Sequioia   | 15.3    | ❓             |
+| Sequioia   | 15.2    | ❓             |
+| Sequioia   | 15.1    | ❓             |
+| Sequioia   | 15.0    | ❓             |
+| Sonoma     | 14.6    | ❌             |
+| Sonoma     | 14.5    | ❌             |
+| Sonoma     | 14.4    | ❌             |
+| Sonoma     | 14.3    | ❌             |
+| Sonoma     | 14.2    | ❌             |
+| Sonoma     | 14.1    | ❌             |
+| Sonoma     | 14.0    | ❌             |
+
+Legend: Compatible (✅), Not yet tested (❓), Incompatible (❌)
 
 ## Changelog
 
@@ -66,7 +79,7 @@ $ brew install haukesomm/repo/apple-photos-export
 > [!IMPORTANT]
 > Currently, binaries of this app are only provided for __macOS on ARM__, i.e. M-series Macs.  
 > Attempting to install the Homebrew formula on other platforms will result in an unspecific error.
-> 
+>
 > Users on other OSs/architectures should be able to build the app locally on most other Unix-like operating systems,
 > though.
 
@@ -130,32 +143,32 @@ point.
   <details>
     <summary>Example usage snippets</summary>
 
-  ##### Full export structured by year/month/album
-  
-  - Exports everything, including hidden assets
+##### Full export structured by year/month/album
+
+- Exports everything, including hidden assets
     - Restores the original filenames used when importing the assets to the library
     - Groups the assets in a `Year/Month/Album` structure
     - Includes both the original and edited versions of each asset
     - Flattens the album structure
-  
+
   ```shell
   $ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -Mrfe
   ```
-  
-  ##### Only include assets that are part of one or more albums
-  
-  - Exports all assets that _are_ part of the given albums (in this case `700` and `701`)
+
+##### Only include assets that are part of one or more albums
+
+- Exports all assets that _are_ part of the given albums (in this case `700` and `701`)
     - Album IDs can be obtained via the `list-albums` command
-  
+
   ```shell
   $ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -a=700,701
   ```
-  
-  ##### Exclude assets that are part of at least one given album
-  
-  - Exports all assets that _are not_ part of any of the given albums (in this case `700` and `701`)
+
+##### Exclude assets that are part of at least one given album
+
+- Exports all assets that _are not_ part of any of the given albums (in this case `700` and `701`)
     - Album IDs can be obtained via the `list-albums` command
-  
+
   ```shell
   $ apple-photos-export <LIBRARY_PATH> export <OUTPUT_DIR> -A=700,701
   ```
@@ -167,4 +180,5 @@ point.
 Contributions to this project are always welcome! 🎉
 
 When opening a PR, please consider the following requirements:
+
 1) This project uses conventional commit messages. If you open a PR, make sure your commits are structured accordingly.

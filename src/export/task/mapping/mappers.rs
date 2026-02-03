@@ -3,6 +3,7 @@ use crate::export::task::{AssetMapping, ExportTask};
 use crate::model::album::Album;
 use chrono::Datelike;
 use derive_new::new;
+use log::error;
 use soft_canonicalize::soft_canonicalize;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -267,7 +268,7 @@ impl MapAsset for ConvertToAbsolutePath {
         // systems, e.g. when working with mounted SAMBA shares in combination with the --skip or
         // --delete flags.
         let destination = soft_canonicalize(&absolute_path).unwrap_or_else(|_| {
-            eprintln!(
+            error!(
                 "Unable to canonicalize path!: {}",
                 task.destination.to_string_lossy()
             );

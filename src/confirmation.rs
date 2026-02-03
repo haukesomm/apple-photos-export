@@ -1,5 +1,5 @@
 //! Some basic utilities to prompt the user for confirmation.
-//! 
+//!
 //! Everything in here is quite a mess and probably the ugliest part of this application ;-)
 
 use std::io::{stdin, stdout, Read, Write};
@@ -18,7 +18,7 @@ pub fn wait_for_enter_key_press() {
     let _ = stdin().read(&mut []);
 }
 
-pub fn confirmation_prompt(prompt: String) -> Answer {
+pub fn confirmation_prompt(prompt: &str) -> Answer {
     let mut input = String::new();
 
     while input.len() != 1

@@ -3,7 +3,7 @@ use crate::export::{ExportEngine, ExportMetadata};
 use crate::model::Library;
 use crate::result::{Error, Result};
 use clap::{Args, Parser, Subcommand};
-use colored::Colorize;
+use log::{error, info};
 use rand::Rng;
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -17,7 +17,8 @@ mod cocoa_time;
 mod confirmation;
 mod db;
 mod export;
-pub mod fs;
+mod fs;
+mod logging;
 mod model;
 mod result;
 mod uti;
@@ -129,6 +130,8 @@ pub struct ExportArgs {
 }
 
 fn main() {
+    logging::configure_logger().expect("Failed to configure logger!");
+
     let args = Arguments::parse();
 
     let library = Library::new(PathBuf::from(&args.library_path));
@@ -238,9 +241,7 @@ fn main() {
                     Rc::new(RefCell::new(HashSet::new()));
 
                 if export_args.skip_existing || export_args.delete {
-                    println!(
-                        "Indexing existing files in output directory (this may take a long time) ..."
-                    );
+                    info!("Indexing existing files in output directory (this may take a long time) ...");
                     existing_unhandled_output_files
                         .borrow_mut()
                         .extend(fs::recursively_get_files(&export_args.output_dir));
@@ -294,29 +295,17 @@ where
     if let Err(e) = function() {
         match e {
             Error::General(msg) => {
-                eprintln!("{}", msg.bright_red());
+                error!("{}", msg)
             }
             Error::Database(err) => {
-                eprintln!(
-                    "{}",
-                    format!("An error occurred connecting to the database: {}", err).bright_red()
-                );
+                error!("An error occurred connecting to the database: {}", err)
             }
             Error::Export(messages) => {
                 let err_log_file = _write_export_error_log(&messages)
                     .unwrap_or_else(|e| panic!("Unable to write error log: {}", e));
 
-                eprintln!();
-                eprintln!(
-                    "{}",
-                    "One or more errors occurred during the export!".bright_red()
-                );
-
-                let logfile_msg = format!(
-                    "For more information, see the error log at '{}'",
-                    err_log_file
-                );
-                eprintln!("{}", logfile_msg.bright_red());
+                error!("One or more errors occurred during the export!");
+                error!("Log file written to: {}", err_log_file)
             }
         }
     }

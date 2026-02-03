@@ -59,9 +59,9 @@ impl Display for AssetMapping {
         write!(f, "(")?;
 
         if self.is_derivate {
-            write!(f, "{}", "derivate".cyan())?;
+            write!(f, "{}", "derivate".bright_magenta())?;
         } else {
-            write!(f, "{}", "original".green())?;
+            write!(f, "{}", "original".cyan())?;
         }
 
         if let Some(album_id) = self.album_id {

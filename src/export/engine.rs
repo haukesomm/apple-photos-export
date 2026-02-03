@@ -3,6 +3,8 @@ use crate::export::copying::{CopyAsset, CopyAssetViaFs, PretendToCopyAsset};
 use crate::export::task::{AssetMapping, ExportTask};
 use crate::result::Error;
 use colored::Colorize;
+use log::{info, warn};
+use std::fmt::{Display, Formatter};
 
 /// Holds the metadata for the export process, including the total number of assets,
 /// the number of exportable assets, and the number of export tasks.
@@ -10,6 +12,39 @@ pub struct ExportMetadata {
     pub total_asset_count: usize,
     pub exportable_asset_count: usize,
     pub export_task_count: usize,
+}
+
+struct ExportStep {
+    task: ExportTask,
+    index: usize,
+    total: usize,
+}
+
+impl Display for ExportStep {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let Self { task, index, total } = self;
+
+        write!(f, "{}", format!("[{}/{}] ", index + 1, total).yellow())?;
+
+        match task {
+            ExportTask::Copy(mapping @ AssetMapping { skip: false, .. }) => {
+                write!(f, "{} {}", "Exporting".bright_green(), mapping)?;
+            }
+            ExportTask::Copy(mapping @ AssetMapping { skip: true, .. }) => {
+                write!(f, "{} {}", "Skipping".bright_blue(), mapping)?;
+            }
+            ExportTask::Delete(path) => {
+                write!(
+                    f,
+                    "{} {}",
+                    "Deleting file at".bright_red(),
+                    format!("{}", path.display()).dimmed()
+                )?;
+            }
+        };
+
+        Ok(())
+    }
 }
 
 /// Represents the export engine responsible for executing the export tasks.
@@ -53,41 +88,31 @@ impl ExportEngine {
     /// If any errors occur during the export, they are collected and returned as a result.
     pub fn run_export(&self, tasks: Vec<ExportTask>, meta: ExportMetadata) -> crate::Result<()> {
         if meta.total_asset_count != meta.exportable_asset_count {
-            println!(
-                "{} Out of {} assets in your library only {} are exportable",
-                "Warning:".yellow(),
-                meta.total_asset_count,
-                meta.exportable_asset_count
+            warn!(
+                "Out of {} assets in your library only {} are exportable. This may be because the \
+                missing assets have been offloaded to iCloud. Try downloading the entire library \
+                via the Photos app's settings to fix this.",
+                meta.total_asset_count, meta.exportable_asset_count
             );
-            println!("This may be because the missing assets have been offloaded to iCloud.");
-            println!(
-                "Try downloading the entire library via the Photos app's settings to fix this."
-            )
         }
 
-        println!(
-            "{} Assets that are part of multiple albums will be exported multiple times.",
-            "Info:".blue()
+        info!(
+            "The export will consist of {} files. Assets that are part of multiple albums will be \
+            exported multiple times.",
+            meta.export_task_count
         );
 
-        if let Answer::No = confirmation_prompt(format!(
-            "{}",
-            format!(
-                "The export will consist of {} files. Start now?",
-                meta.export_task_count
-            )
-            .bright_green()
-        )) {
+        if let Answer::No = confirmation_prompt("Start the export now?") {
             return Ok(());
         };
 
-        let (successes, failures): (i32, Vec<String>) = tasks.iter().enumerate().fold(
+        let (successes, failures): (i32, Vec<String>) = tasks.into_iter().enumerate().fold(
             (0, vec![]),
-            |(success_counter, failures), (index, task)| match self.export_asset(
+            |(success_counter, failures), (index, task)| match self.export_asset(ExportStep {
                 task,
                 index,
-                meta.export_task_count,
-            ) {
+                total: meta.export_task_count,
+            }) {
                 Ok(_) => (success_counter + 1, failures),
                 Err(msg) => {
                     let mut f = Vec::from(failures);
@@ -105,30 +130,15 @@ impl ExportEngine {
         }
     }
 
-    fn export_asset(&self, task: &ExportTask, index: usize, total: usize) -> Result<(), String> {
-        print!("{}", format!("[{}/{}] ", index + 1, total).yellow());
+    fn export_asset(&self, step: ExportStep) -> Result<(), String> {
+        info!("{}", step);
 
-        let result = match task {
+        match step.task {
             ExportTask::Copy(mapping @ AssetMapping { skip: false, .. }) => {
-                print!("{} {}", "Exporting".bright_green(), mapping);
-                self.copy_strategy.copy(mapping)
+                self.copy_strategy.copy(&mapping)
             }
-            ExportTask::Copy(mapping @ AssetMapping { skip: true, .. }) => {
-                println!("{} {}", "Skipping".bright_blue(), mapping);
-                Ok(())
-            }
-            ExportTask::Delete(path) => {
-                print!(
-                    "{} {}",
-                    "Deleting file at".bright_red(),
-                    format!("{}", path.display()).dimmed()
-                );
-                self.copy_strategy.delete(path)
-            }
-        };
-
-        println!();
-
-        result
+            ExportTask::Delete(path) => self.copy_strategy.delete(&path),
+            _ => Ok(()),
+        }
     }
 }

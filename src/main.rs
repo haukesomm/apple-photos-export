@@ -25,13 +25,7 @@ mod uti;
 
 /// Export photos from the macOS Photos library, organized by album and/or date.
 #[derive(Parser, Debug)]
-#[command(
-    version, 
-    about, 
-    long_about = None, 
-    after_help = "Have a look at the changelog for the latest changes:\n\
-        https://github.com/haukesomm/apple-photos-export/blob/main/CHANGELOG.md"
-)]
+#[command(version,about,long_about = None)]
 struct Arguments {
     // Path to the Photos library
     library_path: String,
@@ -75,25 +69,13 @@ pub struct ExportArgs {
     /// Include assets in the albums matching the given ids
     ///
     /// Note: This option only has an effect when using an album-based grouping strategy!
-    #[arg(
-        short = 'a', 
-        long = "include-by-album", 
-        group = "ids", 
-        num_args = 1.., 
-        value_delimiter = ','
-    )]
+    #[arg(short = 'a',long = "include-by-album",group = "ids",num_args = 1..,value_delimiter = ',')]
     include_by_album: Option<Vec<i32>>,
 
     /// Exclude assets in the albums matching the given ids
     ///
     /// Note: This option only has an effect when using an album-based grouping strategy!
-    #[arg(
-        short = 'A', 
-        long = "exclude-by-album", 
-        group = "ids", 
-        num_args = 1.., 
-        value_delimiter = ',')
-    ]
+    #[arg(short = 'A',long = "exclude-by-album",group = "ids", num_args = 1..,value_delimiter = ',')]
     exclude_by_album: Option<Vec<i32>>,
 
     /// Only include assets that are not part of the 'hidden' album

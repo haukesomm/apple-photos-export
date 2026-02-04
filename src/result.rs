@@ -1,15 +1,13 @@
+use std::fmt::{Display, Formatter};
+
 /// App specific error type representing different kinds of errors that can occur while using
 /// the application.
+#[derive(Debug)]
 pub enum Error {
     /// A general error occurred.
     ///
     /// This type is used for errors that do not fit into any of the other categories.
     General(String),
-
-    /// An error occurred while reading the database.
-    ///
-    /// This type is used for `rusqlite` errors.
-    Database(String),
 
     /// An error occurred during the export process.
     ///
@@ -18,6 +16,21 @@ pub enum Error {
     ///
     /// It contains a list of error messages for each failed export.
     Export(Vec<String>),
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::General(msg) => msg.fmt(f),
+            Error::Export(_) => {
+                write!(
+                    f,
+                    "One or more export related errors occurred during the export! Check the \
+                    logfile for more detailed information."
+                )
+            }
+        }
+    }
 }
 
 /// Type alias for a result that can return the app-internal `Error` type defined in the `result`
@@ -42,12 +55,12 @@ impl<S: ToString + ToErrorFromString> From<S> for Error {
 
 impl From<rusqlite::Error> for Error {
     fn from(value: rusqlite::Error) -> Self {
-        Self::Database(value.to_string())
+        Self::General(value.to_string())
     }
 }
 
 impl From<(rusqlite::Connection, rusqlite::Error)> for Error {
     fn from(value: (rusqlite::Connection, rusqlite::Error)) -> Self {
-        Self::Database(value.1.to_string())
+        Self::General(value.1.to_string())
     }
 }

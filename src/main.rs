@@ -277,17 +277,17 @@ where
     if let Err(e) = function() {
         match e {
             Error::General(msg) => {
-                error!("{}", msg)
-            }
-            Error::Database(err) => {
-                error!("An error occurred connecting to the database: {}", err)
+                error!("A general error has occurred: {}", msg)
             }
             Error::Export(messages) => {
-                let err_log_file = _write_export_error_log(&messages)
-                    .unwrap_or_else(|e| panic!("Unable to write error log: {}", e));
+                let err_log_file =
+                    _write_export_error_log(&messages).expect("Unable to write to log file!");
 
-                error!("One or more errors occurred during the export!");
-                error!("Log file written to: {}", err_log_file)
+                error!(
+                    "One or more errors occurred during the export! Have a look at the log file \
+                    under '{}' for more information!",
+                    err_log_file
+                );
             }
         }
     }

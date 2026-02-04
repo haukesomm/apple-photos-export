@@ -1,7 +1,6 @@
 pub mod album;
 
-mod asset;
-pub use asset::Asset;
+pub mod asset;
 
-mod library;
+pub mod library;
 pub use library::Library;

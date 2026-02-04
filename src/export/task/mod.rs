@@ -1,6 +1,7 @@
 pub mod mapping;
 
-use crate::model::{Asset, Library};
+use crate::model::asset::Asset;
+use crate::model::Library;
 use colored::Colorize;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;

@@ -1,4 +1,5 @@
-use crate::model::Asset;
+use crate::model::asset::Asset;
+use crate::uti::FileType;
 use std::path::PathBuf;
 
 /// Represents a macOS Photos library.
@@ -42,7 +43,11 @@ impl Library {
 
         let derivate_filename = {
             let uti = &asset.derivate_uti;
-            format!("{}{}.{}", asset.uuid, uti.derivate_suffix, uti.ext)
+            let suffix = match uti.file_type {
+                FileType::Image => file_suffixes::IMAGE_DERIVATE,
+                FileType::Video => file_suffixes::VIDEO_DERIVATE,
+            };
+            format!("{}{}.{}", asset.uuid, suffix, uti.ext)
         };
 
         let derivate_path = PathBuf::new()
@@ -53,4 +58,14 @@ impl Library {
 
         Some(derivate_path)
     }
+}
+
+pub mod file_suffixes {
+    //! Known suffixes added to asset (image/video) files depending on their characteristics.
+
+    /// Suffix appended to all derived _image_ assets when stored in the Photos library.
+    pub const IMAGE_DERIVATE: &str = "_1_201_a";
+
+    /// Suffix appended to all derived _video_ assets when stored in the Photos library.
+    pub const VIDEO_DERIVATE: &str = "_2_0_a";
 }

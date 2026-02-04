@@ -98,6 +98,10 @@ pub struct ExportArgs {
     #[arg(short = 'E', long = "prefer-edited", group = "edited")]
     prefer_edited: bool,
 
+    /// Include the associated RAW files of an asset if present.
+    #[arg(short = 'R', long = "include-associated-raw-files")]
+    include_associated_raw_files: bool,
+
     /// Don't copy files that already exist in the output directory.
     #[arg(short = 's', long = "skip")]
     skip_existing: bool,
@@ -133,20 +137,16 @@ fn main() {
                 album_list::print_album_tree(&albums)?
             }
             Commands::Export(export_args) => {
-                let (albums, asset_count, exportable_assets) =
-                    db::with_connection(&db_path, |conn| {
-                        db::version::perform_version_check(conn)?;
+                let db_conn = db::new_connection(&db_path)?;
 
-                        Ok((
-                            db::album::get_all_albums(conn)?
-                                .into_iter()
-                                .map(|album| (album.id, album))
-                                .collect(),
-                            db::asset::get_visible_count(conn)?,
-                            db::asset::get_exportable_assets(conn)?,
-                        ))
-                    })?;
+                db::version::perform_version_check(&db_conn)?;
 
+                let albums = db::album::get_all_albums(&db_conn)?
+                    .into_iter()
+                    .map(|album| (album.id, album))
+                    .collect();
+                let asset_count = db::asset::get_visible_count(&db_conn)?;
+                let exportable_assets = db::asset::get_exportable_assets(&db_conn)?;
                 let exportable_asset_count = exportable_assets.len();
 
                 let mut builder = {
@@ -206,6 +206,10 @@ fn main() {
                     builder.add_mapper(mappers::PrefixHidden)
                 }
 
+                if export_args.include_associated_raw_files {
+                    builder.add_mapper(mappers::IncludeAssociatedRawImage::new(&db_conn))
+                }
+
                 builder.add_mapper(mappers::ConvertToAbsolutePath::new(&export_args.output_dir));
 
                 // Keep track of existing files in the output directory
@@ -260,6 +264,8 @@ fn main() {
                 };
 
                 engine.run_export(export_tasks, export_metadata)?;
+
+                db_conn.close()?;
             }
         }
 

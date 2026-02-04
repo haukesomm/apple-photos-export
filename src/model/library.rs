@@ -68,4 +68,7 @@ pub mod file_suffixes {
 
     /// Suffix appended to all derived _video_ assets when stored in the Photos library.
     pub const VIDEO_DERIVATE: &str = "_2_0_a";
+
+    /// Suffix appended to the associated RAW image of an asset.
+    pub const ASSOCIATED_RAW_IMAGE: &str = "_4";
 }

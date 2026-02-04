@@ -4,6 +4,13 @@ pub mod album;
 pub mod asset;
 pub mod version;
 
+pub fn new_connection<P: AsRef<Path>>(db_path: P) -> crate::Result<rusqlite::Connection> {
+    Ok(rusqlite::Connection::open_with_flags(
+        db_path,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )?)
+}
+
 /// Execute a closure with a database connection.
 ///
 /// This function is a helper to open a database connection, execute a closure with the connection
@@ -13,8 +20,7 @@ where
     P: AsRef<Path>,
     F: FnOnce(&rusqlite::Connection) -> crate::Result<R>,
 {
-    let conn =
-        rusqlite::Connection::open_with_flags(db_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let conn = new_connection(db_path)?;
 
     let result = execute(&conn);
 

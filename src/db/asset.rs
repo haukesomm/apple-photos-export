@@ -1,7 +1,7 @@
 use crate::cocoa_time::ParseCocoaTimestamp;
+use crate::model::asset::{Asset, DataStoreSubtype};
 use crate::uti::Uti;
 use chrono::NaiveDateTime;
-use crate::model::asset::Asset;
 
 /// Get the count of all assets in the database that are _visible_, meaning they are not
 /// part of the "hidden" album or moved to the trash.
@@ -14,26 +14,27 @@ pub fn get_visible_count(conn: &rusqlite::Connection) -> crate::Result<usize> {
 fn get_exportable_assets_query(album_z_ent_key: i32, asset_z_ent_key: i32) -> String {
     format!(
         r"
-        SELECT asset.Z_PK                           AS ID,
-               asset.ZUUID                          AS UUID,
-               asset.ZDIRECTORY                     AS DIR,
-               asset.ZFILENAME                      AS FILENAME,
-               asset.ZUNIFORMTYPEIDENTIFIER         AS UTI,
-               asset.ZDATECREATED                   AS DATETIME,
-               asset.ZHIDDEN                        AS HIDDEN,
-               asset.ZTRASHEDSTATE                  AS TRASHED,
-               asset.ZVISIBILITYSTATE               AS VISIBLE,
-               asset.ZDUPLICATEASSETVISIBILITYSTATE AS DUPLICATE_VISIBILITY,
-               asset.ZADJUSTMENTSSTATE > 0          AS HAS_ADJUSTMENTS,
-               asset_attribs.ZORIGINALFILENAME      AS ORIGINAL_FILENAME,
-               int_res.ZCOMPACTUTI                  AS COMPACT_UTI,
-               GROUP_CONCAT(album.Z_PK, ', ')       AS ALBUM_IDS
+        SELECT asset.Z_PK                                    AS ID,
+               asset.ZUUID                                   AS UUID,
+               asset.ZDIRECTORY                              AS DIR,
+               asset.ZFILENAME                               AS FILENAME,
+               asset.ZUNIFORMTYPEIDENTIFIER                  AS UTI,
+               asset.ZDATECREATED                            AS DATETIME,
+               asset.ZHIDDEN                                 AS HIDDEN,
+               asset.ZTRASHEDSTATE                           AS TRASHED,
+               asset.ZVISIBILITYSTATE                        AS VISIBLE,
+               asset.ZDUPLICATEASSETVISIBILITYSTATE          AS DUPLICATE_VISIBILITY,
+               asset.ZADJUSTMENTSSTATE > 0                   AS HAS_ADJUSTMENTS,
+               asset_attribs.ZORIGINALFILENAME               AS ORIGINAL_FILENAME,
+               int_res.ZCOMPACTUTI                           AS COMPACT_UTI,
+               GROUP_CONCAT(int_res.ZDATASTORESUBTYPE, ', ') AS DATA_STORE_SUBTYPES,
+               GROUP_CONCAT(album.Z_PK, ', ')                AS ALBUM_IDS
         FROM ZASSET asset
                  INNER JOIN ZADDITIONALASSETATTRIBUTES asset_attribs
                             ON asset.Z_PK = asset_attribs.ZASSET
                  LEFT JOIN ZINTERNALRESOURCE int_res
                            ON int_res.ZASSET = asset_attribs.ZASSET
-                               AND int_res.ZDATASTORESUBTYPE = 1
+                               AND int_res.ZDATASTORESUBTYPE IN (1, 17)
                  LEFT JOIN Z_{}ASSETS album_mapping
                            ON album_mapping.Z_{}ASSETS = asset.Z_PK
                  LEFT JOIN ZGENERICALBUM album
@@ -76,6 +77,7 @@ pub fn get_exportable_assets(conn: &rusqlite::Connection) -> crate::Result<Vec<A
     let assets: crate::Result<Vec<Asset>> = stmt
         .query_and_then([], |row| {
             Ok(Asset {
+                id: row.get("ID")?,
                 uuid: row.get("UUID")?,
                 dir: row.get("DIR")?,
                 filename: row.get("FILENAME")?,
@@ -87,6 +89,23 @@ pub fn get_exportable_assets(conn: &rusqlite::Connection) -> crate::Result<Vec<A
                 hidden: row.get("HIDDEN")?,
                 original_filename: row.get("ORIGINAL_FILENAME")?,
                 has_adjustments: row.get("HAS_ADJUSTMENTS")?,
+                data_store_subtypes: {
+                    let serialized_ids: Option<String> = row.get("DATA_STORE_SUBTYPES")?;
+                    serialized_ids
+                        .map(|serialized| {
+                            serialized
+                                .split(", ")
+                                .map(|id| {
+                                    id.parse::<usize>()
+                                        .map(|usize| DataStoreSubtype::try_from(usize))
+                                })
+                                .flatten()
+                                .collect::<Result<Vec<_>, _>>()
+                                .ok()
+                        })
+                        .flatten()
+                        .unwrap_or(vec![])
+                },
                 album_ids: {
                     let serialized_ids: Option<String> = row.get("ALBUM_IDS")?;
                     serialized_ids
@@ -94,7 +113,7 @@ pub fn get_exportable_assets(conn: &rusqlite::Connection) -> crate::Result<Vec<A
                             string
                                 .split(", ")
                                 .map(|id| id.parse::<i32>())
-                                .collect::<Result<Vec<i32>, _>>()
+                                .collect::<Result<Vec<_>, _>>()
                                 .ok()
                         })
                         .flatten()
@@ -105,4 +124,33 @@ pub fn get_exportable_assets(conn: &rusqlite::Connection) -> crate::Result<Vec<A
         .collect();
 
     assets
+}
+
+pub fn get_data_store_subtype_uti(
+    conn: &rusqlite::Connection,
+    asset_id: usize,
+    subtype: DataStoreSubtype,
+) -> crate::Result<Uti> {
+    let DataStoreSubtype(subtype_id) = subtype;
+
+    let raw_sql = include_str!("../../queries/get_uti_of_datastore_subtype.sql");
+    let mut stmt = conn.prepare(&raw_sql)?;
+
+    let utis: crate::Result<Vec<Uti>> = stmt
+        .query_and_then([asset_id.to_string(), subtype_id.to_string()], |row| {
+            let uti_name: String = row.get("COMPACT_UTI")?;
+            let uti = Uti::from_compact_id(uti_name.as_str())?;
+            Ok(uti)
+        })?
+        .collect();
+
+    let first = utis
+        .map(|mut vec| vec.pop())?
+        .ok_or(crate::Error::General(format!(
+            "Cannot find associated internal resource with data store subtype '{:?}' for asset \
+            '{}'!",
+            subtype, asset_id
+        )))?;
+
+    Ok(first)
 }

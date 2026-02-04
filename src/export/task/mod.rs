@@ -12,6 +12,7 @@ pub enum ExportTask {
     Delete(PathBuf),
 }
 
+// TODO Impl Default for AssetMapping
 #[derive(Clone)]
 pub struct AssetMapping {
     pub asset: Asset,
@@ -20,6 +21,7 @@ pub struct AssetMapping {
     pub is_derivate: bool,
     pub album_id: Option<i32>,
     pub skip: bool,
+    pub is_part_of_raw_pair: bool,
 }
 
 impl AssetMapping {
@@ -31,6 +33,7 @@ impl AssetMapping {
             is_derivate: false,
             album_id: None,
             skip: false,
+            is_part_of_raw_pair: false,
         }
     }
 
@@ -51,6 +54,7 @@ impl AssetMapping {
             is_derivate: true,
             album_id: None,
             skip: false,
+            is_part_of_raw_pair: false,
         })
     }
 }
@@ -60,9 +64,14 @@ impl Display for AssetMapping {
         write!(f, "(")?;
 
         if self.is_derivate {
-            write!(f, "{}", "derivate".bright_magenta())?;
+            write!(f, "{}", "derivate".cyan())?;
         } else {
-            write!(f, "{}", "original".cyan())?;
+            write!(f, "{}", "original".blue())?;
+        }
+
+        if self.is_part_of_raw_pair {
+            write!(f, ", ")?;
+            write!(f, "{}", "RAW pair".bright_magenta())?;
         }
 
         if let Some(album_id) = self.album_id {

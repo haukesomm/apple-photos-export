@@ -29,7 +29,7 @@ Features of this program include (but are not limited to):
 
 ## Compatibility
 
-> [!INFO]
+> [!NOTE]
 > This program is intended to work on macOS Sequoia and above.
 
 Compatibility has briefly been tested on the following versions of macOS:

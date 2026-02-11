@@ -3,7 +3,7 @@
 ![Rust](https://img.shields.io/badge/Rust-d6a672?style=for-the-badge&logo=rust)
 
 This utility program exports all images and videos from an Apple Photos Library to a local directory for backup
-purposes. The library is accesses in a read-only and thus, does not modify it at all.
+purposes. The library is accessed read-only and does not modify it in any way.
 
 > [!IMPORTANT]
 > The project works by reverse-engineering the Apple Photos Library database and file structure. Thus, it is not
@@ -25,6 +25,7 @@ Features of this program include (but are not limited to):
 - Sync mode:
     - Skip assets that already have been exported
     - Delete existing assets that are no longer part of the library
+- Handle JPEG/RAW pairs
 - Dry-run mode to test the export without actually copying any files
 
 ## Compatibility
@@ -58,7 +59,7 @@ Legend: Compatible (✅), Not yet tested (❓), Incompatible (❌)
 
 ## Changelog
 
-For an overview of the changes made between each version, please have a look at the [CHANGELOG](CHANGELOG.md).
+For an overview of the changes made between each version, please have a look at the releases page.
 
 ## Installation
 
@@ -74,7 +75,7 @@ $ brew install haukesomm/repo/apple-photos-export
 > [!IMPORTANT]
 > Releases of this app are _not signed_.  
 > macOS will complain about this and refuse to execute the app until you painstakingly white-list it via the system
-> settings. Thanks for nothing, Apple.
+> settings.
 
 > [!IMPORTANT]
 > Currently, binaries of this app are only provided for __macOS on ARM__, i.e. M-series Macs.  
@@ -83,13 +84,16 @@ $ brew install haukesomm/repo/apple-photos-export
 > Users on other OSs/architectures should be able to build the app locally on most other Unix-like operating systems,
 > though.
 
-Of course, the latest commits can alwas be built locally as well with no special magic required:
+Of course, the latest commit can alwas be built locally as well with no special magic required:
 
 ```shell
 cargo build
 ```
 
 ## Usage
+
+> [!CAUTION]
+> Remember to test the different configuration options using the `-d` flag (dry-run) before running any actual exports!
 
 ### Listing albums
 
@@ -103,42 +107,12 @@ $ apple-photos-export list-albums <LIBRARY_PATH>
 $ apple-photos-export <LIBRARY_PATH> export [OPTIONS] <OUTPUT_DIR>
 ```
 
-Export configuration options:
-
-```
--l, --group-by-album
-        Group assets by album
--m, --group-by-year-month
-        Group assets by year/month
--M, --group-by-year-month-album
-        Group assets by year/month/album
--a, --include-by-album <INCLUDE_BY_ALBUM>...
-        Include assets in the albums matching the given ids
--A, --exclude-by-album <EXCLUDE_BY_ALBUM>...
-        Exclude assets in the albums matching the given ids
--v, --visible
-        Only include assets that are not part of the 'hidden' album
--r, --restore-original-filenames
-        Restore original filenames
--f, --flatten-albums
-        Flatten album structure
--e, --include-edited
-        Include edited versions of the assets if available
--E, --prefer-edited
-        Prefer the edited version of the asset if available and fall back to the original otherwise
--d, --dry-run
-        Dry run
--h, --help
-        Print help
-```
+Use `apple-photos-export export --help` for a list of available configuration options.
 
 #### Examples
 
 The following snippets show as an example how to export assets from a Photos Library and may be used as a starting
 point.
-
-> [!IMPORTANT]
-> Remember to test the different configuration options using the `-d` flag (dry-run) before running any actual exports!
 
   <details>
     <summary>Example usage snippets</summary>

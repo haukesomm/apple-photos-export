@@ -1,3 +1,5 @@
+mod ascii_tree;
+
 use crate::model::album::Album;
 use colored::Colorize;
 use std::collections::HashMap;

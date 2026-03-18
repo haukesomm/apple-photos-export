@@ -7,7 +7,6 @@ edition = "2021"
 log = "0.4"
 #simple_logger = { version = "5.1.0", default-features = false, features = ["colors", "stderr"] }
 fern = "0.7"
-ascii_tree = "0.1"
 chrono = "0.4"
 clap = { version = "4.5", features = ["derive"] }
 colored = "3.0"

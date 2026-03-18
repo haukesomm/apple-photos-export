@@ -64,3 +64,9 @@ impl From<(rusqlite::Connection, rusqlite::Error)> for Error {
         Self::General(value.1.to_string())
     }
 }
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self::General(value.to_string())
+    }
+}

@@ -228,9 +228,12 @@ fn main() {
 
                 if export_args.skip_existing || export_args.delete {
                     info!("Indexing existing files in output directory (this may take a long time) ...");
-                    existing_unhandled_output_files
-                        .borrow_mut()
-                        .extend(fs::recursively_get_files(&export_args.output_dir));
+
+                    let mut existing_files = existing_unhandled_output_files.borrow_mut();
+                    fs::recursively_visit_files(&export_args.output_dir, &mut |entry| {
+                        existing_files.insert(entry);
+                        Ok(())
+                    })?;
 
                     if export_args.skip_existing {
                         builder.add_mapper(mappers::SkipIfExists::new(Rc::clone(

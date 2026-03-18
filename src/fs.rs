@@ -1,19 +1,29 @@
-use std::collections::HashSet;
-use std::path::PathBuf;
-use walkdir::WalkDir;
+use std::fs::DirEntry;
+use std::path::{Path, PathBuf};
 
-pub fn recursively_get_files<P: Into<PathBuf>>(directory: P) -> HashSet<PathBuf> {
-    WalkDir::new(directory.into())
-        .into_iter()
-        // Convert entries to paths
-        .filter_map(|entry| entry.map(|entry| entry.path().to_path_buf()).ok())
-        // Filter out directories
-        .filter_map(|p| p.is_file().then_some(p))
-        // Canonicalize paths in order to be able to compare them across multiple file
-        // systems, e.g. when working with mounted SAMBA shares in combination with the --skip or
-        // --delete flags.
-        // Since we obtained the path by iterating over the output directory, this should never fail
-        // unless a file or directory has been deleted while the export is running.
-        .filter_map(|p| p.canonicalize().ok())
-        .collect()
+pub fn recursively_visit_files<P, C>(path: P, callback: &mut C) -> crate::Result<()>
+where
+    P: AsRef<Path>,
+    C: FnMut(PathBuf) -> crate::Result<()>,
+{
+    // This is inefficient but needed in order to achieve consistent results between runs
+    // (fs::read_dir is non-deterministic in terms of sorting order)
+    let mut entries: Vec<DirEntry> = path
+        .as_ref()
+        .read_dir()?
+        .collect::<std::result::Result<Vec<DirEntry>, _>>()?;
+
+    entries.sort_by_key(DirEntry::path);
+
+    for entry in entries {
+        let filetype = &entry.file_type()?;
+
+        if filetype.is_dir() {
+            recursively_visit_files(entry.path().as_path(), callback)?;
+        } else if filetype.is_file() {
+            callback(entry.path())?;
+        }
+    }
+
+    Ok(())
 }

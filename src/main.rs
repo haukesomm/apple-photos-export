@@ -4,7 +4,7 @@ use crate::model::Library;
 use crate::result::{Error, Result};
 use clap::{Args, Parser, Subcommand};
 use log::{error, info};
-use rand::Rng;
+use rand::RngExt;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;

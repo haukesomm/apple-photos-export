@@ -5,12 +5,9 @@ use crate::result::{Error, Result};
 use clap::{Args, Parser, Subcommand};
 use log::{error, info};
 use rand::Rng;
-use std::cell::RefCell;
-use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use std::rc::Rc;
 
 mod album_list;
 mod cocoa_time;
@@ -212,45 +209,23 @@ fn main() {
 
                 builder.add_mapper(mappers::ConvertToAbsolutePath::new(&export_args.output_dir));
 
-                // Keep track of existing files in the output directory
-                //
-                // This is used for the 'skip existing' and 'delete' options:
-                // - For 'skip existing', we need to know which files already exist so we can skip them
-                // - For 'delete', we need to know which files have not occurred in the export so we can delete them
-                //
-                // In order to do so, we first gather all existing files in the output directory
-                // before we start building the export tasks. Then, when building the export tasks,
-                // we mark files that are going to be exported as 'handled' via the `SkipIfExists` mapper.
-                // Finally, after building the export tasks, we can determine which files are unhandled
-                // and create delete tasks for them.
-                let existing_unhandled_output_files: Rc<RefCell<HashSet<PathBuf>>> =
-                    Rc::new(RefCell::new(HashSet::new()));
+                let output_tracking_mapper = mappers::OutputFileTrackingAssetMapper::new(
+                    &export_args.output_dir,
+                    export_args.skip_existing,
+                );
 
                 if export_args.skip_existing || export_args.delete {
                     info!("Indexing existing files in output directory (this may take a long time) ...");
-
-                    let mut existing_files = existing_unhandled_output_files.borrow_mut();
-                    fs::recursively_visit_files(&export_args.output_dir, &mut |entry| {
-                        existing_files.insert(entry);
-                        Ok(())
-                    })?;
-
-                    if export_args.skip_existing {
-                        builder.add_mapper(mappers::SkipIfExists::new(Rc::clone(
-                            &existing_unhandled_output_files,
-                        )));
-                    }
-
-                    builder.add_mapper(mappers::RemoveFromCacheIfExists::new(Rc::clone(
-                        &existing_unhandled_output_files,
-                    )));
+                    output_tracking_mapper.initialize()?;
+                    // Cloning the mapper is okay, because cloned copies share state via a `RefCell`
+                    builder.add_mapper(output_tracking_mapper.clone());
                 }
 
                 let mut export_tasks = builder.build(exportable_assets);
 
                 if export_args.delete {
-                    let borrow = existing_unhandled_output_files.borrow();
-                    let delete_tasks = export::task::create_delete_tasks(borrow.iter());
+                    let delete_tasks =
+                        output_tracking_mapper.create_delete_tasks_for_unhandled_files();
                     export_tasks.extend(delete_tasks);
                 }
 

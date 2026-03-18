@@ -1,15 +1,15 @@
 use crate::export::task::mapping::{MapAsset, MapExportTask, TaskMapperResult};
 use crate::export::task::{AssetMapping, ExportTask};
+use crate::fs;
 use crate::model::album::Album;
 use crate::model::asset::DataStoreSubtype;
 use chrono::Datelike;
 use derive_new::new;
 use log::error;
-use soft_canonicalize::soft_canonicalize;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::ffi::{OsStr, OsString};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 /// A mapper that excludes hidden assets from the export.
@@ -263,59 +263,9 @@ impl ConvertToAbsolutePath {
 
 impl MapAsset for ConvertToAbsolutePath {
     fn map_asset(&self, task: AssetMapping) -> AssetMapping {
-        let absolute_path = self.output_dir.join(&task.destination);
-
-        // Try to canonicalize paths in order to be able to compare them across multiple file
-        // systems, e.g. when working with mounted SAMBA shares in combination with the --skip or
-        // --delete flags.
-        let destination = soft_canonicalize(&absolute_path).unwrap_or_else(|_| {
-            error!(
-                "Unable to canonicalize path!: {}",
-                task.destination.to_string_lossy()
-            );
-            self.output_dir.clone()
-        });
-
         AssetMapping {
-            destination,
+            destination: self.output_dir.join(task.destination),
             ..task
-        }
-    }
-}
-
-#[derive(new)]
-pub struct RemoveFromCacheIfExists {
-    output_dir_files: Rc<RefCell<HashSet<PathBuf>>>,
-}
-
-impl MapAsset for RemoveFromCacheIfExists {
-    fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
-        let destination: &PathBuf = &mapping.destination;
-
-        let mut output_dir_files = self.output_dir_files.borrow_mut();
-        output_dir_files.remove(destination);
-
-        mapping
-    }
-}
-
-#[derive(new)]
-pub struct SkipIfExists {
-    output_dir_files: Rc<RefCell<HashSet<PathBuf>>>,
-}
-
-impl MapAsset for SkipIfExists {
-    fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
-        let destination: &PathBuf = &mapping.destination;
-
-        let output_dir_files = self.output_dir_files.borrow_mut();
-        if output_dir_files.contains(destination) {
-            AssetMapping {
-                skip: true,
-                ..mapping
-            }
-        } else {
-            mapping
         }
     }
 }
@@ -403,5 +353,66 @@ impl<'a> MapExportTask for IncludeAssociatedRawImage<'a> {
                 ..mapping
             }),
         ])
+    }
+}
+
+#[derive(Clone)]
+pub struct OutputFileTrackingAssetMapper {
+    output_dir: PathBuf,
+    unprocessed_files: Rc<RefCell<HashSet<PathBuf>>>,
+    skip_existing_tasks: bool,
+}
+
+impl OutputFileTrackingAssetMapper {
+    pub fn new<P: Into<PathBuf>>(output_dir: P, skip_existing_tasks: bool) -> Self {
+        Self {
+            output_dir: output_dir.into(),
+            unprocessed_files: Rc::new(RefCell::new(HashSet::new())),
+            skip_existing_tasks,
+        }
+    }
+
+    pub fn initialize(&self) -> crate::Result<()> {
+        let mut files = self.unprocessed_files.borrow_mut();
+        fs::recursively_visit_files(&self.output_dir, &mut |entry| {
+            files.insert(self.get_relative_path(&entry)?);
+            Ok(())
+        })?;
+
+        Ok(())
+    }
+
+    pub fn create_delete_tasks_for_unhandled_files(&self) -> Vec<ExportTask> {
+        self.unprocessed_files
+            .borrow()
+            .iter()
+            .map(|p| ExportTask::Delete(PathBuf::from(p)))
+            .collect()
+    }
+
+    pub(self) fn get_relative_path(&self, absolute: &Path) -> crate::Result<PathBuf> {
+        Ok(absolute
+            .strip_prefix(&self.output_dir)
+            .map_err(|_| format!("Failed to strip prefix of path: {:?}", absolute))?
+            .to_path_buf())
+    }
+}
+
+impl MapAsset for OutputFileTrackingAssetMapper {
+    fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
+        let relative = self
+            .get_relative_path(&mapping.destination)
+            .unwrap_or(PathBuf::from(&mapping.destination));
+
+        self.unprocessed_files.borrow_mut().remove(&relative);
+
+        if self.skip_existing_tasks {
+            AssetMapping {
+                skip: true,
+                ..mapping
+            }
+        } else {
+            mapping
+        }
     }
 }

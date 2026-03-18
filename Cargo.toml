@@ -13,4 +13,3 @@ plist = "1.8"
 rand = "0.9"
 rusqlite = { version = "0.37", features = ["bundled"] }
 derive-new = "0.7"
-soft-canonicalize = "0.5"

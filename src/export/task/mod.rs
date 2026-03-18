@@ -92,14 +92,3 @@ impl Display for AssetMapping {
         )
     }
 }
-
-pub fn create_delete_tasks<P, I>(paths: I) -> Vec<ExportTask>
-where
-    P: Into<PathBuf>,
-    I: IntoIterator<Item = P>,
-{
-    paths
-        .into_iter()
-        .map(|p| ExportTask::Delete(p.into()))
-        .collect()
-}

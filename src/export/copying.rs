@@ -20,23 +20,25 @@ pub struct CopyAssetViaFs;
 
 impl CopyAssetViaFs {
     fn _copy(&self, task: &AssetMapping) -> Result<(), String> {
+        let destination = task.destination_path();
+
         let stem = task
-            .destination
+            .destination_path()
             .file_stem()
             .map(|s| s.to_string_lossy().to_string())
             .ok_or(format!(
                 "Original file name has no stem - source: {}, original filename: {}",
                 task.source.display(),
-                task.destination.display()
+                destination.display()
             ))?;
 
-        let ext = task.destination.extension().ok_or(format!(
+        let ext = destination.extension().ok_or(format!(
             "Original file name has no extension - source: {}, original filename: {}",
             task.source.display(),
-            task.destination.display()
+            destination.display()
         ))?;
 
-        let mut dest = task.destination.to_owned();
+        let mut dest = destination.to_owned();
         let mut counter = 0;
 
         while dest.exists() {
@@ -58,13 +60,13 @@ impl CopyAssetViaFs {
                 .map_err(|e| format!("Could not create output folders: {}", e))?
         }
 
-        std::fs::copy(&task.source, &task.destination)
+        std::fs::copy(&task.source, &destination)
             .map(|_| ())
             .map_err(|inner_message| {
                 format!(
                     "Could not copy file: {} to {}: {}",
                     &task.source.to_string_lossy(),
-                    &task.destination.to_string_lossy(),
+                    &destination.to_string_lossy(),
                     inner_message
                 )
             })

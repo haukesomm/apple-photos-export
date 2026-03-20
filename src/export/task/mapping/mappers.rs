@@ -8,7 +8,7 @@ use derive_new::new;
 use log::error;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use unicode_normalization::UnicodeNormalization;
@@ -34,7 +34,7 @@ impl MapAsset for PrefixHidden {
     fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
         if mapping.asset.hidden {
             AssetMapping {
-                destination: PathBuf::from("_hidden").join(&mapping.destination),
+                destination_dir: PathBuf::from("_hidden").join(&mapping.destination_dir),
                 ..mapping
             }
         } else {
@@ -49,23 +49,13 @@ pub struct MarkOriginalsAndDerivates;
 
 impl MapAsset for MarkOriginalsAndDerivates {
     fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
-        let mut dest = mapping.destination;
-        let ext = String::from(
-            dest.extension()
-                .unwrap_or(&OsStr::new(""))
-                .to_string_lossy(),
-        );
-
-        dest.set_extension(if mapping.is_derivate {
-            format!("derivate.{}", ext)
-        } else {
-            format!("original.{}", ext)
+        let mut marked = mapping.clone();
+        marked.filename_components.push(match mapping.is_derivate {
+            true => "derivate".to_string(),
+            false => "original".to_string(),
         });
 
-        AssetMapping {
-            destination: dest,
-            ..mapping
-        }
+        marked
     }
 }
 
@@ -74,16 +64,12 @@ pub struct RestoreOriginalFilenames;
 
 impl MapAsset for RestoreOriginalFilenames {
     fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
-        let original_extension = mapping.destination.extension().clone();
-
-        let mut destination = PathBuf::from(&mapping.destination);
-
-        destination.set_file_name(&mapping.asset.original_filename);
-        // Restore original extension or remove it if the original destination did not have one
-        destination.set_extension(&original_extension.unwrap_or(OsStr::new("")));
-
         AssetMapping {
-            destination,
+            filename_components: vec![PathBuf::from(&mapping.asset.original_filename)
+                .file_stem()
+                .expect("Fatal: Encountered library asset without file stem!")
+                .to_string_lossy()
+                .to_string()],
             ..mapping
         }
     }
@@ -129,7 +115,7 @@ impl<'a> MapAsset for GroupByAlbum<'a> {
         if let Some(album_id) = mapping.album_id {
             let album_path = self.build_album_path_recursively(album_id, self.max_depth);
             AssetMapping {
-                destination: PathBuf::from(album_path).join(&mapping.destination),
+                destination_dir: PathBuf::from(album_path).join(&mapping.destination_dir),
                 ..mapping
             }
         } else {
@@ -148,7 +134,7 @@ impl MapAsset for GroupByYearAndMonth {
         prefix.push(format!("{:>02}", mapping.asset.datetime.month()));
 
         AssetMapping {
-            destination: PathBuf::from(prefix).join(&mapping.destination),
+            destination_dir: PathBuf::from(prefix).join(&mapping.destination_dir),
             ..mapping
         }
     }
@@ -175,7 +161,7 @@ impl<'a> MapAsset for GroupByYearMonthAndAlbum<'a> {
                     }
 
                     AssetMapping {
-                        destination: PathBuf::from(prefix).join(&mapping.destination),
+                        destination_dir: PathBuf::from(prefix).join(&mapping.destination_dir),
                         ..mapping
                     }
                 } else {
@@ -265,7 +251,7 @@ impl ConvertToAbsolutePath {
 impl MapAsset for ConvertToAbsolutePath {
     fn map_asset(&self, task: AssetMapping) -> AssetMapping {
         AssetMapping {
-            destination: self.output_dir.join(task.destination),
+            destination_dir: self.output_dir.join(task.destination_dir),
             ..task
         }
     }
@@ -339,9 +325,6 @@ impl<'a> MapExportTask for IncludeAssociatedRawImage<'a> {
             source
         };
 
-        let mut raw_destination = PathBuf::from(&mapping.destination);
-        raw_destination.set_extension(raw_image_uti.ext);
-
         TaskMapperResult::Split(vec![
             ExportTask::Copy(AssetMapping {
                 is_part_of_raw_pair: true,
@@ -350,7 +333,7 @@ impl<'a> MapExportTask for IncludeAssociatedRawImage<'a> {
             ExportTask::Copy(AssetMapping {
                 is_part_of_raw_pair: true,
                 source: raw_source,
-                destination: raw_destination,
+                file_extension: raw_image_uti.ext.to_string(),
                 ..mapping
             }),
         ])
@@ -406,7 +389,7 @@ impl OutputFileTrackingAssetMapper {
 impl MapAsset for OutputFileTrackingAssetMapper {
     fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
         let relative = self
-            .get_normalized_unicode_key(&mapping.destination)
+            .get_normalized_unicode_key(&mapping.destination_path())
             .unwrap();
 
         let file_exists = self

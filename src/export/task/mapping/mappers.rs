@@ -7,10 +7,11 @@ use chrono::Datelike;
 use derive_new::new;
 use log::error;
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use unicode_normalization::UnicodeNormalization;
 
 /// A mapper that excludes hidden assets from the export.
 pub struct ExcludeHidden;
@@ -359,7 +360,7 @@ impl<'a> MapExportTask for IncludeAssociatedRawImage<'a> {
 #[derive(Clone)]
 pub struct OutputFileTrackingAssetMapper {
     output_dir: PathBuf,
-    unprocessed_files: Rc<RefCell<HashSet<PathBuf>>>,
+    files_to_remove: Rc<RefCell<HashMap<String, PathBuf>>>,
     skip_existing_tasks: bool,
 }
 
@@ -367,46 +368,54 @@ impl OutputFileTrackingAssetMapper {
     pub fn new<P: Into<PathBuf>>(output_dir: P, skip_existing_tasks: bool) -> Self {
         Self {
             output_dir: output_dir.into(),
-            unprocessed_files: Rc::new(RefCell::new(HashSet::new())),
+            files_to_remove: Rc::new(RefCell::new(HashMap::new())),
             skip_existing_tasks,
         }
     }
 
     pub fn initialize(&self) -> crate::Result<()> {
-        let mut files = self.unprocessed_files.borrow_mut();
+        let mut files = self.files_to_remove.borrow_mut();
+
         fs::recursively_visit_files(&self.output_dir, &mut |entry| {
-            files.insert(self.get_relative_path(&entry)?);
+            files.insert(self.get_normalized_unicode_key(&entry)?, entry);
             Ok(())
         })?;
 
         Ok(())
     }
 
-    pub fn create_delete_tasks_for_unhandled_files(&self) -> Vec<ExportTask> {
-        self.unprocessed_files
+    pub fn create_delete_tasks_for_remaining_files(&self) -> Vec<ExportTask> {
+        self.files_to_remove
             .borrow()
             .iter()
-            .map(|p| ExportTask::Delete(PathBuf::from(&self.output_dir.join(p))))
+            .map(|(_, p)| ExportTask::Delete(PathBuf::from(&self.output_dir.join(p))))
             .collect()
     }
 
-    pub(self) fn get_relative_path(&self, absolute: &Path) -> crate::Result<PathBuf> {
+    pub(self) fn get_normalized_unicode_key(&self, absolute: &Path) -> crate::Result<String> {
         Ok(absolute
             .strip_prefix(&self.output_dir)
             .map_err(|_| format!("Failed to strip prefix of path: {:?}", absolute))?
-            .to_path_buf())
+            .to_path_buf()
+            .to_string_lossy()
+            .nfc()
+            .to_string())
     }
 }
 
 impl MapAsset for OutputFileTrackingAssetMapper {
     fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
         let relative = self
-            .get_relative_path(&mapping.destination)
-            .unwrap_or(PathBuf::from(&mapping.destination));
+            .get_normalized_unicode_key(&mapping.destination)
+            .unwrap();
 
-        let file_exists_in_destination = self.unprocessed_files.borrow_mut().remove(&relative);
+        let file_exists = self
+            .files_to_remove
+            .borrow_mut()
+            .remove(&relative)
+            .is_some();
 
-        if self.skip_existing_tasks && file_exists_in_destination {
+        if self.skip_existing_tasks && file_exists {
             AssetMapping {
                 skip: true,
                 ..mapping

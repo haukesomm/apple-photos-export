@@ -225,7 +225,7 @@ fn main() {
 
                 if export_args.delete {
                     let delete_tasks =
-                        output_tracking_mapper.create_delete_tasks_for_unhandled_files();
+                        output_tracking_mapper.create_delete_tasks_for_remaining_files();
                     export_tasks.extend(delete_tasks);
                 }
 

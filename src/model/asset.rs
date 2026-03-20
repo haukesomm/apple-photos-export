@@ -1,4 +1,5 @@
 use crate::uti::Uti;
+use std::collections::HashSet;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct DataStoreSubtype(pub usize);
@@ -65,7 +66,7 @@ pub struct Asset {
     pub data_store_subtypes: Vec<DataStoreSubtype>,
 
     /// List of ids of the albums the asset is part of.
-    pub album_ids: Vec<i32>,
+    pub album_ids: HashSet<i32>,
 }
 
 impl Asset {

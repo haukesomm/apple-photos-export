@@ -386,7 +386,7 @@ impl OutputFileTrackingAssetMapper {
         self.unprocessed_files
             .borrow()
             .iter()
-            .map(|p| ExportTask::Delete(PathBuf::from(p)))
+            .map(|p| ExportTask::Delete(PathBuf::from(&self.output_dir.join(p))))
             .collect()
     }
 
@@ -404,9 +404,9 @@ impl MapAsset for OutputFileTrackingAssetMapper {
             .get_relative_path(&mapping.destination)
             .unwrap_or(PathBuf::from(&mapping.destination));
 
-        self.unprocessed_files.borrow_mut().remove(&relative);
+        let file_exists_in_destination = self.unprocessed_files.borrow_mut().remove(&relative);
 
-        if self.skip_existing_tasks {
+        if self.skip_existing_tasks && file_exists_in_destination {
             AssetMapping {
                 skip: true,
                 ..mapping

@@ -2,6 +2,7 @@ use crate::cocoa_time::ParseCocoaTimestamp;
 use crate::model::asset::{Asset, DataStoreSubtype};
 use crate::uti::Uti;
 use chrono::NaiveDateTime;
+use std::collections::HashSet;
 
 /// Get the count of all assets in the database that are _visible_, meaning they are not
 /// part of the "hidden" album or moved to the trash.
@@ -113,11 +114,11 @@ pub fn get_exportable_assets(conn: &rusqlite::Connection) -> crate::Result<Vec<A
                             string
                                 .split(", ")
                                 .map(|id| id.parse::<i32>())
-                                .collect::<Result<Vec<_>, _>>()
+                                .collect::<Result<HashSet<_>, _>>()
                                 .ok()
                         })
                         .flatten()
-                        .unwrap_or(vec![])
+                        .unwrap_or(HashSet::new())
                 },
             })
         })?

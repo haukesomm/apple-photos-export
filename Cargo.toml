@@ -13,3 +13,4 @@ plist = "1.8"
 rand = "0.10"
 rusqlite = { version = "0.39", features = ["bundled", "fallible_uint"] }
 derive-new = "0.7"
+unicode-normalization = "0.1"

@@ -75,6 +75,20 @@ impl MapAsset for RestoreOriginalFilenames {
     }
 }
 
+/// A mapper that includes the asset's id in the output filename.
+///
+/// This is useful in order to avoid conflicts if the original filenames are restored and multiple
+/// files have the same filename.
+pub struct IncludeAssetId;
+
+impl MapAsset for IncludeAssetId {
+    fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
+        let mut clone = mapping.clone();
+        clone.filename_components.push(mapping.asset.id.to_string());
+        clone
+    }
+}
+
 /// A mapper that groups assets by album.
 pub struct GroupByAlbum<'a> {
     albums: &'a HashMap<i32, Album>,

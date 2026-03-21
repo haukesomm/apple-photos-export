@@ -83,6 +83,10 @@ pub struct ExportArgs {
     #[arg(short = 'r', long = "restore-original-filenames")]
     restore_original_filenames: bool,
 
+    /// Include the internal asset id in the output filename in order to avoid duplicates
+    #[arg(short = 'i', long = "include-asset-ids")]
+    include_asset_ids: bool,
+
     /// Flatten album structure
     #[arg(short = 'f', long = "flatten-albums")]
     flatten_albums: bool,
@@ -159,6 +163,10 @@ fn main() {
 
                 if export_args.restore_original_filenames {
                     builder.add_mapper(mappers::RestoreOriginalFilenames)
+                }
+
+                if export_args.include_asset_ids {
+                    builder.add_mapper(mappers::IncludeAssetId)
                 }
 
                 if export_args.include_edited {

@@ -1,5 +1,5 @@
 use crate::confirmation::{confirmation_prompt, Answer};
-use crate::export::copying::{CopyAsset, CopyAssetViaFs, PretendToCopyAsset};
+use crate::export::file_operations::{ActualExport, DryRun, ExecuteFileOperation};
 use crate::export::task::{AssetMapping, ExportTask};
 use crate::result::Error;
 use colored::Colorize;
@@ -56,7 +56,7 @@ impl Display for ExportStep {
 /// without actually copying any files by creating a new instance of the engine with the
 /// `dry_run` method instead of the `new` method.
 pub struct ExportEngine {
-    copy_strategy: Box<dyn CopyAsset>,
+    copy_strategy: Box<dyn ExecuteFileOperation>,
 }
 
 impl ExportEngine {
@@ -68,7 +68,7 @@ impl ExportEngine {
     /// Use the `dry_run` method to create a dry-run instance of the engine.
     pub fn new() -> Self {
         Self {
-            copy_strategy: Box::new(CopyAssetViaFs),
+            copy_strategy: Box::new(ActualExport),
         }
     }
 
@@ -78,7 +78,7 @@ impl ExportEngine {
     /// Use the `new` method to create a real instance of the engine that performs the export.
     pub fn dry_run() -> Self {
         Self {
-            copy_strategy: Box::new(PretendToCopyAsset),
+            copy_strategy: Box::new(DryRun),
         }
     }
 
@@ -106,7 +106,7 @@ impl ExportEngine {
             return Ok(());
         };
 
-        let (successes, failures): (i32, Vec<String>) = tasks.into_iter().enumerate().fold(
+        let (successes, failures): (usize, Vec<String>) = tasks.into_iter().enumerate().fold(
             (0, vec![]),
             |(success_counter, failures), (index, task)| match self.export_asset(ExportStep {
                 task,
@@ -116,7 +116,7 @@ impl ExportEngine {
                 Ok(_) => (success_counter + 1, failures),
                 Err(msg) => {
                     let mut f = Vec::from(failures);
-                    f.push(msg);
+                    f.push(msg.to_string());
                     (success_counter, f)
                 }
             },
@@ -130,13 +130,13 @@ impl ExportEngine {
         }
     }
 
-    fn export_asset(&self, step: ExportStep) -> Result<(), String> {
+    fn export_asset(&self, step: ExportStep) -> crate::Result<()> {
         info!("{}", step);
 
         match step.task {
-            ExportTask::Copy(mapping @ AssetMapping { skip: false, .. }) => {
-                self.copy_strategy.copy(&mapping)
-            }
+            ExportTask::Copy(mapping @ AssetMapping { skip: false, .. }) => self
+                .copy_strategy
+                .copy(&mapping.source, &mapping.destination_path()),
             ExportTask::Delete(path) => self.copy_strategy.delete(&path),
             _ => Ok(()),
         }

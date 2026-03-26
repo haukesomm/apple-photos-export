@@ -7,7 +7,7 @@ use chrono::Datelike;
 use derive_new::new;
 use log::error;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -358,6 +358,7 @@ impl<'a> MapExportTask for IncludeAssociatedRawImage<'a> {
 pub struct OutputFileTrackingAssetMapper {
     output_dir: PathBuf,
     files_to_remove: Rc<RefCell<HashMap<String, PathBuf>>>,
+    ignored_filenames: HashSet<String>,
     skip_existing_tasks: bool,
 }
 
@@ -366,6 +367,7 @@ impl OutputFileTrackingAssetMapper {
         Self {
             output_dir: output_dir.into(),
             files_to_remove: Rc::new(RefCell::new(HashMap::new())),
+            ignored_filenames: HashSet::from([".DS_Store".to_string()]),
             skip_existing_tasks,
         }
     }
@@ -374,7 +376,14 @@ impl OutputFileTrackingAssetMapper {
         let mut files = self.files_to_remove.borrow_mut();
 
         fs::recursively_visit_files(&self.output_dir, &mut |entry| {
-            files.insert(self.get_normalized_unicode_key(&entry)?, entry);
+            if let Some(name) = &entry.file_name() {
+                if !self
+                    .ignored_filenames
+                    .contains(&name.to_string_lossy().to_string())
+                {
+                    files.insert(self.get_normalized_unicode_key(&entry)?, entry);
+                }
+            }
             Ok(())
         })?;
 

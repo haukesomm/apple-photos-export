@@ -34,7 +34,7 @@ data_store_subtype_impl!(ORIGINAL(1), ASSOCIATED_RAW_IMAGE(17));
 /// export process.
 #[derive(Clone)]
 pub struct Asset {
-    pub id: usize,
+    pub id: i32,
 
     /// The UUID of the asset.
     pub uuid: String,

@@ -1,7 +1,7 @@
 pub mod mapping;
 
-use crate::model::asset::Asset;
 use crate::model::Library;
+use crate::model::asset::Asset;
 use colored::Colorize;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
@@ -35,11 +35,13 @@ impl AssetMapping {
             asset: asset.clone(),
             source: lib.get_asset_original_path(&asset),
             destination_dir: PathBuf::new(),
-            filename_components: vec![filename_path
-                .file_stem()
-                .expect("Fatal: Encountered an internal asset without file extension!")
-                .to_string_lossy()
-                .to_string()],
+            filename_components: vec![
+                filename_path
+                    .file_stem()
+                    .expect("Fatal: Encountered an internal asset without file extension!")
+                    .to_string_lossy()
+                    .to_string(),
+            ],
             file_extension: filename_path
                 .extension()
                 .expect("Fatal: Encountered an internal asset without file extension!")
@@ -63,11 +65,13 @@ impl AssetMapping {
             asset: asset.clone(),
             source: path,
             destination_dir: PathBuf::new(),
-            filename_components: vec![PathBuf::from(&asset.filename)
-                .file_stem()
-                .expect("Fatal: Encountered an internal asset without file extension!")
-                .to_string_lossy()
-                .to_string()],
+            filename_components: vec![
+                PathBuf::from(&asset.filename)
+                    .file_stem()
+                    .expect("Fatal: Encountered an internal asset without file extension!")
+                    .to_string_lossy()
+                    .to_string(),
+            ],
             file_extension: asset.derivate_uti.ext.to_string(),
             is_derivate: true,
             album_id: None,

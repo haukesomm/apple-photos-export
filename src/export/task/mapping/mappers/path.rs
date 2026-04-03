@@ -1,8 +1,8 @@
 //! This module contains mappers that modify an export task's output path, i.e. converting to
 //! absolute paths or moving hidden assets into a dedicated directory.
 
-use crate::export::task::mapping::MapAsset;
 use crate::export::task::AssetMapping;
+use crate::export::task::mapping::MapAsset;
 use std::path::PathBuf;
 
 /// A mapper that converts the destination path to an absolute path using the given output directory.

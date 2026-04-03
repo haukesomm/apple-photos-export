@@ -125,11 +125,16 @@ pub fn perform_version_check(db_conn: &rusqlite::Connection) -> crate::Result<()
 
     match version {
         Version::Unknown(number) => {
-            warn!("The provided library has an unknown version ({}) and might not work with this program!", number);
+            warn!(
+                "The provided library has an unknown version ({}) and might not work with this program!",
+                number
+            );
             crate::confirmation::wait_for_enter_key_press();
         }
         Version::Range(range) if range < MIN_SUPPORTED_VERSION => {
-            warn!("The provided library has an old version that is not officially supported by this program!");
+            warn!(
+                "The provided library has an old version that is not officially supported by this program!"
+            );
             warn!("The minimum required version is {}", MIN_SUPPORTED_VERSION);
             crate::confirmation::wait_for_enter_key_press();
         }

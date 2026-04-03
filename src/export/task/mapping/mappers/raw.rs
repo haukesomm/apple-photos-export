@@ -4,10 +4,11 @@
 use crate::export::task::mapping::{MapExportTask, TaskMapperResult};
 use crate::export::task::{AssetMapping, ExportTask};
 use crate::model::asset::DataStoreSubtype;
+use crate::uti::Uti;
 use derive_new::new;
 use log::error;
 use std::ffi::OsString;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(new)]
 pub struct IncludeAssociatedRawImage<'a> {
@@ -16,67 +17,33 @@ pub struct IncludeAssociatedRawImage<'a> {
 
 impl<'a> MapExportTask for IncludeAssociatedRawImage<'a> {
     fn map_export_task(&self, task: ExportTask) -> TaskMapperResult {
-        // This monstrosity acts as an important guard:
-        let mapping = match &task {
-            // If a task is going to be deleted anyway, it is not for this mapper.
-            ExportTask::Delete(_) => return TaskMapperResult::Map(task),
-
-            // A copy task is also omitted if:
-            // 1) It is a derivate (only the primary asset can have an associated raw image)
-            // 2) It has already been mapped by this task and thus is marked as a raw-pair
-            // 3) It does not have an associated raw image to begin with
-            ExportTask::Copy(m)
-                if m.is_derivate
-                    || m.is_part_of_raw_pair
-                    || !m.asset.has_associated_raw_image() =>
-            {
-                return TaskMapperResult::Map(task)
+        // General guard - only process tasks that have unprocessed RAW pairs
+        let mapping = 'guard: {
+            if let ExportTask::Copy(m) = &task {
+                if can_extract_raw_image(m) {
+                    break 'guard m;
+                }
             }
-
-            // In all other cases, we may proceed to extract and modify the mapping
-            ExportTask::Copy(m) => m.clone(),
+            return TaskMapperResult::Map(task);
         };
 
-        let raw_image_uti = {
-            let result = crate::db::asset::get_data_store_subtype_uti(
-                self.db_connection,
-                mapping.asset.id,
-                DataStoreSubtype::ASSOCIATED_RAW_IMAGE,
-            );
-            if let Err(error) = result {
-                error!(
-                    "Could not get the associated raw image's UTI for asset '{}' despite the \
-                    database indicating it has one! The respective asset pair will be ignored! \
-                    Error: {}",
-                    mapping.asset.id, error
-                );
-                return TaskMapperResult::Remove;
-            }
-            result.unwrap()
-        };
-
-        let raw_source = {
-            let mut source = PathBuf::from(&mapping.source);
-
-            if let Some(filename) = mapping.source.file_stem() {
-                let mut raw_file_filename = OsString::new();
-                raw_file_filename.push(filename);
-                raw_file_filename.push(crate::model::library::file_suffixes::ASSOCIATED_RAW_IMAGE);
-
-                source.set_file_name(raw_file_filename);
-                source.set_extension(raw_image_uti.ext);
+        // Try to determine the associated RAW pairs UTI
+        let raw_image_uti =
+            if let Ok(uti) = get_associated_raw_file_uti(self.db_connection, mapping.asset.id) {
+                uti
             } else {
-                error!(
-                    "The source file under '{}' appears to have no file name! This should not be \
-                    possible. The respective asset pair will be ignored!",
-                    mapping.source.to_string_lossy()
-                );
                 return TaskMapperResult::Remove;
-            }
+            };
 
-            source
-        };
+        // Construct the path of the associated RAW image
+        let mut raw_file_source = PathBuf::from(&mapping.source);
+        raw_file_source.set_file_name(get_associated_raw_file_name(&mapping.source));
+        raw_file_source.set_extension(raw_image_uti.ext);
 
+        // Split the original task into two distinct ones: One for the original and for it's
+        // associated RAW image.
+        // Both are marked as a RAW pair so they won't be processed again, potentially resulting in
+        // an infinite loop if mappers are applied recursively.
         TaskMapperResult::Split(vec![
             ExportTask::Copy(AssetMapping {
                 is_part_of_raw_pair: true,
@@ -84,10 +51,49 @@ impl<'a> MapExportTask for IncludeAssociatedRawImage<'a> {
             }),
             ExportTask::Copy(AssetMapping {
                 is_part_of_raw_pair: true,
-                source: raw_source,
+                source: raw_file_source,
                 file_extension: raw_image_uti.ext.to_string(),
-                ..mapping
+                ..mapping.clone()
             }),
         ])
     }
+}
+
+/// This helper function decides whether an `AssetMapping` has an exportable associated RAW image.
+///
+/// Whether this is the case depends on a number of criteria:
+/// 1) The asset must not be a derivate (only original assets can have an associated RAW image)
+/// 2) The mapping must not have been marked as processed by the RAW file mapper before
+/// 3) The asset must have an associated RAW image to begin with.
+#[inline(always)]
+fn can_extract_raw_image(mapping: &AssetMapping) -> bool {
+    !mapping.is_derivate && !mapping.is_part_of_raw_pair && mapping.asset.has_associated_raw_image()
+}
+
+fn get_associated_raw_file_uti(conn: &rusqlite::Connection, asset_id: i32) -> crate::Result<Uti> {
+    let result = crate::db::asset::get_data_store_subtype_uti(
+        conn,
+        asset_id,
+        DataStoreSubtype::ASSOCIATED_RAW_IMAGE,
+    );
+    if let Err(error) = &result {
+        error!(
+            "Could not get the associated raw image's UTI for asset '{}' despite the \
+            database indicating it has one! The respective asset pair will be ignored! \
+            Error: {}",
+            asset_id, error
+        );
+    };
+    result
+}
+
+fn get_associated_raw_file_name(original_file: &Path) -> OsString {
+    let mut filename = original_file
+        .file_stem()
+        .map(|s| s.to_owned())
+        .unwrap_or(OsString::new());
+
+    filename.push(crate::model::library::file_suffixes::ASSOCIATED_RAW_IMAGE);
+
+    filename
 }

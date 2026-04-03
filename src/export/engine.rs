@@ -1,4 +1,4 @@
-use crate::confirmation::{confirmation_prompt, Answer};
+use crate::confirmation::{Answer, confirmation_prompt};
 use crate::export::file_operations::{ActualExport, DryRun, ExecuteFileOperation};
 use crate::export::task::{AssetMapping, ExportTask};
 use crate::result::Error;

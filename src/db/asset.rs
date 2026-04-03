@@ -129,16 +129,14 @@ pub fn get_exportable_assets(conn: &rusqlite::Connection) -> crate::Result<Vec<A
 
 pub fn get_data_store_subtype_uti(
     conn: &rusqlite::Connection,
-    asset_id: usize,
+    asset_id: i32,
     subtype: DataStoreSubtype,
 ) -> crate::Result<Uti> {
-    let DataStoreSubtype(subtype_id) = subtype;
-
     let raw_sql = include_str!("../../queries/get_uti_of_datastore_subtype.sql");
     let mut stmt = conn.prepare(&raw_sql)?;
 
     let utis: crate::Result<Vec<Uti>> = stmt
-        .query_and_then([asset_id.to_string(), subtype_id.to_string()], |row| {
+        .query_and_then([asset_id.to_string(), subtype.0.to_string()], |row| {
             let uti_name: String = row.get("COMPACT_UTI")?;
             let uti = Uti::from_compact_id(uti_name.as_str())?;
             Ok(uti)

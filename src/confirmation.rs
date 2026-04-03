@@ -2,7 +2,7 @@
 //!
 //! Everything in here is quite a mess and probably the ugliest part of this application ;-)
 
-use std::io::{stdin, stdout, Read, Write};
+use std::io::{Read, Write, stdin, stdout};
 
 const CHARACTER_YES: char = 'y';
 const CHARACTER_NO: char = 'n';

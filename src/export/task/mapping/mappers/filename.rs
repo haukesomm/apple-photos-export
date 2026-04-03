@@ -1,8 +1,8 @@
 //! This module contains file-name modifying mappers, e.g. such that restore an asset's original
 //! filename.
 
-use crate::export::task::mapping::MapAsset;
 use crate::export::task::AssetMapping;
+use crate::export::task::mapping::MapAsset;
 use std::path::PathBuf;
 
 /// A mapper that restores the original file name of the asset in the destination path.
@@ -11,11 +11,13 @@ pub struct RestoreOriginalFilenames;
 impl MapAsset for RestoreOriginalFilenames {
     fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
         AssetMapping {
-            filename_components: vec![PathBuf::from(&mapping.asset.original_filename)
-                .file_stem()
-                .expect("Fatal: Encountered library asset without file stem!")
-                .to_string_lossy()
-                .to_string()],
+            filename_components: vec![
+                PathBuf::from(&mapping.asset.original_filename)
+                    .file_stem()
+                    .expect("Fatal: Encountered library asset without file stem!")
+                    .to_string_lossy()
+                    .to_string(),
+            ],
             ..mapping
         }
     }

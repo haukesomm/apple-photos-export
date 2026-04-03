@@ -1,7 +1,7 @@
 use crate::export::task::mapping::mappers;
 use crate::export::{ExportEngine, ExportMetadata};
-use crate::model::album::Album;
 use crate::model::Library;
+use crate::model::album::Album;
 use crate::result::{Error, Result};
 use clap::{Args, Parser, Subcommand};
 use log::{error, info};
@@ -241,7 +241,9 @@ fn main() {
                 );
 
                 if export_args.skip_existing || export_args.delete {
-                    info!("Indexing existing files in output directory (this may take a long time) ...");
+                    info!(
+                        "Indexing existing files in output directory (this may take a long time) ..."
+                    );
                     output_tracking_mapper.initialize()?;
                     // Cloning the mapper is okay, because cloned copies share state via a `RefCell`
                     builder.add_mapper(output_tracking_mapper.clone());

@@ -1,7 +1,7 @@
 use crate::export::task::mapping::{MapExportTask, TaskMapperResult};
 use crate::export::task::{AssetMapping, ExportTask};
-use crate::model::asset::Asset;
 use crate::model::Library;
+use crate::model::asset::Asset;
 
 /// A factory to create export tasks for a given set of assets.
 ///

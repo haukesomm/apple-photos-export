@@ -177,15 +177,15 @@ fn main() {
                 };
 
                 if export_args.restore_original_filenames {
-                    builder.add_mapper(mappers::RestoreOriginalFilenames)
+                    builder.add_mapper(mappers::filename::RestoreOriginalFilenames)
                 }
 
                 if export_args.include_asset_ids {
-                    builder.add_mapper(mappers::IncludeAssetId)
+                    builder.add_mapper(mappers::filename::IncludeAssetId)
                 }
 
                 if export_args.include_edited {
-                    builder.add_mapper(mappers::MarkOriginalsAndDerivates)
+                    builder.add_mapper(mappers::filename::MarkOriginalsAndDerivates)
                 }
 
                 {
@@ -208,30 +208,32 @@ fn main() {
                 }
 
                 if let Some(ids) = &export_args.include_by_album {
-                    builder.add_mapper(mappers::FilterByAlbumId::new(
+                    builder.add_mapper(mappers::filter::FilterByAlbumId::new(
                         ids.clone(),
-                        mappers::AlbumFilterMode::Include,
+                        mappers::filter::AlbumFilterMode::Include,
                     ));
                 }
 
                 if let Some(ids) = &export_args.exclude_by_album {
-                    builder.add_mapper(mappers::FilterByAlbumId::new(
+                    builder.add_mapper(mappers::filter::FilterByAlbumId::new(
                         ids.clone(),
-                        mappers::AlbumFilterMode::Exclude,
+                        mappers::filter::AlbumFilterMode::Exclude,
                     ));
                 }
 
                 if export_args.visible {
-                    builder.add_mapper(mappers::ExcludeHidden)
+                    builder.add_mapper(mappers::filter::ExcludeHidden)
                 } else {
-                    builder.add_mapper(mappers::PrefixHidden)
+                    builder.add_mapper(mappers::path::PrefixHidden)
                 }
 
                 if export_args.include_associated_raw_files {
                     builder.add_mapper(mappers::IncludeAssociatedRawImage::new(&db_conn))
                 }
 
-                builder.add_mapper(mappers::ConvertToAbsolutePath::new(&export_args.output_dir));
+                builder.add_mapper(mappers::path::ConvertToAbsolutePath::new(
+                    &export_args.output_dir,
+                ));
 
                 let output_tracking_mapper = mappers::OutputFileTrackingAssetMapper::new(
                     &export_args.output_dir,

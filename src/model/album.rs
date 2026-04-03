@@ -1,4 +1,5 @@
 /// Represents an album stored in the Photos database.
+#[derive(Clone)]
 pub struct Album {
     /// Unique integer ID used to identify the album in the database.
     pub id: i32,

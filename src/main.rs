@@ -1,10 +1,12 @@
 use crate::export::task::mapping::mappers;
 use crate::export::{ExportEngine, ExportMetadata};
+use crate::model::album::Album;
 use crate::model::Library;
 use crate::result::{Error, Result};
 use clap::{Args, Parser, Subcommand};
 use log::{error, info};
 use rand::RngExt;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -88,8 +90,20 @@ pub struct ExportArgs {
     include_asset_ids: bool,
 
     /// Flatten album structure
-    #[arg(short = 'f', long = "flatten-albums")]
+    #[arg(short = 'f', long = "flatten-albums", group = "album-path-depth")]
     flatten_albums: bool,
+
+    /// The numer of segments from an album's path to use
+    ///
+    /// A value of 1 is the same as using `--flatten-albums`.
+    ///
+    /// A value of `n > 1` includes each album's name as well as `n-1` parents.
+    #[arg(
+        long = "album-path-depth",
+        default_value = "255",
+        group = "album-path-depth"
+    )]
+    album_path_depth: usize,
 
     /// Include edited versions of the assets if available
     #[arg(short = 'e', long = "include-edited", group = "edited")]
@@ -142,10 +156,11 @@ fn main() {
 
                 db::version::perform_version_check(&db_conn)?;
 
-                let albums = db::album::get_all_albums(&db_conn)?
+                let albums: HashMap<i32, Album> = db::album::get_all_albums(&db_conn)?
                     .into_iter()
                     .map(|album| (album.id, album))
                     .collect();
+
                 let asset_count = db::asset::get_visible_count(&db_conn)?;
                 let exportable_assets = db::asset::get_exportable_assets(&db_conn)?;
                 let exportable_asset_count = exportable_assets.len();
@@ -173,22 +188,23 @@ fn main() {
                     builder.add_mapper(mappers::MarkOriginalsAndDerivates)
                 }
 
-                if export_args.album || export_args.year_month_album {
-                    builder.add_mapper(mappers::OneTaskPerAlbum);
-
-                    if export_args.flatten_albums {
-                        builder.add_mapper(mappers::GroupByAlbum::flat(&albums))
+                {
+                    let album_path_depth = if export_args.flatten_albums {
+                        1
                     } else {
-                        builder.add_mapper(mappers::GroupByAlbum::recursive(&albums))
+                        export_args.album_path_depth
+                    };
+
+                    if export_args.year_month_album {
+                        builder.add_mapper(mappers::OneTaskPerAlbum);
+                        builder.add_mapper(mappers::ByAlbum::new(albums.clone(), album_path_depth));
+                        builder.add_mapper(mappers::ByYearAndMonth::of_album(albums));
+                    } else if export_args.year_month {
+                        builder.add_mapper(mappers::ByYearAndMonth::of_asset());
+                    } else if export_args.album {
+                        builder.add_mapper(mappers::OneTaskPerAlbum);
+                        builder.add_mapper(mappers::ByAlbum::new(albums, album_path_depth))
                     }
-                }
-
-                if export_args.year_month_album {
-                    builder.add_mapper(mappers::GroupByYearMonthAndAlbum::new(&albums))
-                }
-
-                if export_args.year_month {
-                    builder.add_mapper(mappers::GroupByYearAndMonth)
                 }
 
                 if let Some(ids) = &export_args.include_by_album {

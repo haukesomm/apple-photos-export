@@ -1,9 +1,13 @@
+mod album;
+mod time;
+
+pub use album::ByAlbum;
+pub use time::ByYearAndMonth;
+
 use crate::export::task::mapping::{MapAsset, MapExportTask, TaskMapperResult};
 use crate::export::task::{AssetMapping, ExportTask};
 use crate::fs;
-use crate::model::album::Album;
 use crate::model::asset::DataStoreSubtype;
-use chrono::Datelike;
 use derive_new::new;
 use log::error;
 use std::cell::RefCell;
@@ -86,103 +90,6 @@ impl MapAsset for IncludeAssetId {
         let mut clone = mapping.clone();
         clone.filename_components.push(mapping.asset.id.to_string());
         clone
-    }
-}
-
-/// A mapper that groups assets by album.
-pub struct GroupByAlbum<'a> {
-    albums: &'a HashMap<i32, Album>,
-    max_depth: u8,
-}
-
-impl<'a> GroupByAlbum<'a> {
-    pub fn flat(albums: &'a HashMap<i32, Album>) -> Self {
-        Self {
-            albums,
-            max_depth: 1,
-        }
-    }
-
-    pub fn recursive(albums: &'a HashMap<i32, Album>) -> Self {
-        Self {
-            albums,
-            max_depth: 255,
-        }
-    }
-
-    fn build_album_path_recursively(&self, id: i32, depth: u8) -> PathBuf {
-        let album_optional = self.albums.get(&id);
-
-        if depth == 0 || album_optional.is_none() || album_optional.unwrap().parent_id.is_none() {
-            return PathBuf::new();
-        }
-
-        let album = album_optional.unwrap();
-        let parent = self.build_album_path_recursively(album.parent_id.unwrap(), depth - 1);
-
-        parent.join(album.name.clone().unwrap_or("_unknown_".to_string()))
-    }
-}
-
-impl<'a> MapAsset for GroupByAlbum<'a> {
-    fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
-        if let Some(album_id) = mapping.album_id {
-            let album_path = self.build_album_path_recursively(album_id, self.max_depth);
-            AssetMapping {
-                destination_dir: PathBuf::from(album_path).join(&mapping.destination_dir),
-                ..mapping
-            }
-        } else {
-            mapping
-        }
-    }
-}
-
-/// A mapper that groups assets by year and month.
-pub struct GroupByYearAndMonth;
-
-impl MapAsset for GroupByYearAndMonth {
-    fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
-        let mut prefix = PathBuf::new();
-        prefix.push(mapping.asset.datetime.year().to_string());
-        prefix.push(format!("{:>02}", mapping.asset.datetime.month()));
-
-        AssetMapping {
-            destination_dir: PathBuf::from(prefix).join(&mapping.destination_dir),
-            ..mapping
-        }
-    }
-}
-
-/// A mapper that groups assets by year, month, and album.
-#[derive(new)]
-pub struct GroupByYearMonthAndAlbum<'a> {
-    albums: &'a HashMap<i32, Album>,
-}
-
-impl<'a> MapAsset for GroupByYearMonthAndAlbum<'a> {
-    fn map_asset(&self, mapping: AssetMapping) -> AssetMapping {
-        let fallback = GroupByYearAndMonth {};
-
-        match &mapping.album_id {
-            None => fallback.map_asset(mapping),
-            Some(album_id) => {
-                if let Some(album) = self.albums.get(&album_id) {
-                    let mut prefix = PathBuf::new();
-                    if let Some(date) = album.start_date {
-                        prefix.push(date.year().to_string());
-                        prefix.push(format!("{:>02}", date.month()))
-                    }
-
-                    AssetMapping {
-                        destination_dir: PathBuf::from(prefix).join(&mapping.destination_dir),
-                        ..mapping
-                    }
-                } else {
-                    mapping
-                }
-            }
-        }
     }
 }
 

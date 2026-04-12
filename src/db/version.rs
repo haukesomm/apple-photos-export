@@ -71,7 +71,7 @@ version_ranges! {
     SONOMA(17000, 17599, "Photos 9.0, macOS 14.0 to 14.5 Sonoma"),
     SONOMA_14_6(17600, 17999, "Photos 9.0, macOS 14.6 Sonoma"),
     SEQUOIA(18000, 18999, "Photos 10.0, macOS 15 Sequoia"),
-    TAHOE(19000, 19500, "Photos 11.0, macOS 26 Tahoe")
+    TAHOE(19000, 19999, "Photos 11.0, macOS 26 Tahoe")
 }
 
 const MIN_SUPPORTED_VERSION: VersionRange = VersionRange::SEQUOIA;

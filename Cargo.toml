@@ -1,6 +1,6 @@
 [package]
 name = "apple-photos-export"
-version = "1.4.0-snapshot"
+version = "1.4.0"
 edition = "2024"
 
 [dependencies]

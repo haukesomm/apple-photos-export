@@ -42,13 +42,13 @@ Compatibility has briefly been tested on the following versions of macOS:
 | Tahoe      | 26.2    | ✅             |
 | Tahoe      | 26.1    | ❓             |
 | Tahoe      | 26.0    | ✅             | 
-| Sequioia   | 15.6    | ✅             |
-| Sequioia   | 15.5    | ❓             |
-| Sequioia   | 15.4    | ❓             |
-| Sequioia   | 15.3    | ❓             |
-| Sequioia   | 15.2    | ❓             |
-| Sequioia   | 15.1    | ❓             |
-| Sequioia   | 15.0    | ❓             |
+| Sequoia   | 15.6    | ✅             |
+| Sequoia   | 15.5    | ❓             |
+| Sequoia   | 15.4    | ❓             |
+| Sequoia   | 15.3    | ❓             |
+| Sequoia   | 15.2    | ❓             |
+| Sequoia   | 15.1    | ❓             |
+| Sequoia   | 15.0    | ❓             |
 | Sonoma     | 14.6    | ❌             |
 | Sonoma     | 14.5    | ❌             |
 | Sonoma     | 14.4    | ❌             |
@@ -86,7 +86,7 @@ $ brew install haukesomm/repo/apple-photos-export
 > Users on other OSs/architectures should be able to build the app locally on most other Unix-like operating systems,
 > though.
 
-Of course, the latest commit can alwas be built locally as well with no special magic required:
+Of course, the latest commit can always be built locally as well with no special magic required:
 
 ```shell
 cargo build

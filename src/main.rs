@@ -67,13 +67,13 @@ pub struct ExportArgs {
 
     /// Include assets in the albums matching the given ids
     ///
-    /// Note: This option only has an effect when using an album-based grouping strategy!
+    /// With album-based grouping, only matching album copies are included.
     #[arg(short = 'a',long = "include-by-album",group = "ids",num_args = 1..,value_delimiter = ',')]
     include_by_album: Option<Vec<i32>>,
 
     /// Exclude assets in the albums matching the given ids
     ///
-    /// Note: This option only has an effect when using an album-based grouping strategy!
+    /// With album-based grouping, only matching album copies are excluded.
     #[arg(short = 'A',long = "exclude-by-album",group = "ids", num_args = 1..,value_delimiter = ',')]
     exclude_by_album: Option<Vec<i32>>,
 

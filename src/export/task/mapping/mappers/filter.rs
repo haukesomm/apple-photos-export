@@ -1,8 +1,8 @@
 //! This module contains dedicated mappers to include and exclude assets based on different criteria
 //! such as their album ids.
 
-use crate::export::task::ExportTask;
 use crate::export::task::mapping::{MapExportTask, TaskMapperResult};
+use crate::export::task::{AssetMapping, ExportTask};
 use derive_new::new;
 
 /// A mapper that excludes hidden assets from the export.
@@ -33,17 +33,12 @@ pub struct FilterByAlbumId {
 
 impl MapExportTask for FilterByAlbumId {
     fn map_export_task(&self, task: ExportTask) -> TaskMapperResult {
-        if let ExportTask::Copy(mapping) = &task {
-            let matches_filter = mapping.album_id.map_or_else(
-                || {
-                    mapping
-                        .asset
-                        .album_ids
-                        .iter()
-                        .any(|id| self.ids.contains(id))
-                },
-                |album_id| self.ids.contains(&album_id),
-            );
+        if let ExportTask::Copy(AssetMapping {
+            album_id: Some(album_id),
+            ..
+        }) = &task
+        {
+            let matches_filter = self.ids.contains(&album_id);
 
             let include = match self.mode {
                 AlbumFilterMode::Include => matches_filter,
@@ -94,52 +89,60 @@ mod tests {
     }
 
     #[test]
-    fn includes_matching_asset_without_album_grouping() {
+    fn includes_matching_album_copy_in_include_mode() {
         let mapper = FilterByAlbumId::new(vec![42], AlbumFilterMode::Include);
 
         assert!(matches!(
-            mapper.map_export_task(task(&[7, 42], None)),
+            mapper.map_export_task(task(&[7, 42], Some(42))),
             TaskMapperResult::Map(_)
         ));
     }
 
     #[test]
-    fn removes_non_matching_asset_without_album_grouping() {
-        let mapper = FilterByAlbumId::new(vec![42], AlbumFilterMode::Include);
-
-        assert!(matches!(
-            mapper.map_export_task(task(&[7], None)),
-            TaskMapperResult::Remove
-        ));
-    }
-
-    #[test]
-    fn excludes_matching_asset_without_album_grouping() {
-        let mapper = FilterByAlbumId::new(vec![42], AlbumFilterMode::Exclude);
-
-        assert!(matches!(
-            mapper.map_export_task(task(&[7, 42], None)),
-            TaskMapperResult::Remove
-        ));
-    }
-
-    #[test]
-    fn includes_non_matching_asset_in_exclude_mode() {
-        let mapper = FilterByAlbumId::new(vec![42], AlbumFilterMode::Exclude);
-
-        assert!(matches!(
-            mapper.map_export_task(task(&[7], None)),
-            TaskMapperResult::Map(_)
-        ));
-    }
-
-    #[test]
-    fn filters_specific_copy_when_grouping_by_album() {
+    fn removes_non_matching_album_copy_in_include_mode() {
         let mapper = FilterByAlbumId::new(vec![42], AlbumFilterMode::Include);
 
         assert!(matches!(
             mapper.map_export_task(task(&[7, 42], Some(7))),
             TaskMapperResult::Remove
+        ));
+    }
+
+    #[test]
+    fn removes_matching_album_copy_in_exclude_mode() {
+        let mapper = FilterByAlbumId::new(vec![42], AlbumFilterMode::Exclude);
+
+        assert!(matches!(
+            mapper.map_export_task(task(&[7, 42], Some(42))),
+            TaskMapperResult::Remove
+        ));
+    }
+
+    #[test]
+    fn keeps_non_matching_album_copy_in_exclude_mode() {
+        let mapper = FilterByAlbumId::new(vec![42], AlbumFilterMode::Exclude);
+
+        assert!(matches!(
+            mapper.map_export_task(task(&[7], Some(7))),
+            TaskMapperResult::Map(_)
+        ));
+    }
+
+    #[test]
+    fn keeps_mapping_without_album_id() {
+        // The filter operates on an AssetMapping's album id. Mappings without
+        // an album id (e.g. assets that are not part of any album, or mappings
+        // that have not been split by OneTaskPerAlbum yet) are left untouched.
+        let include = FilterByAlbumId::new(vec![42], AlbumFilterMode::Include);
+        let exclude = FilterByAlbumId::new(vec![42], AlbumFilterMode::Exclude);
+
+        assert!(matches!(
+            include.map_export_task(task(&[], None)),
+            TaskMapperResult::Map(_)
+        ));
+        assert!(matches!(
+            exclude.map_export_task(task(&[], None)),
+            TaskMapperResult::Map(_)
         ));
     }
 }

@@ -65,15 +65,21 @@ pub struct ExportArgs {
     #[arg(short = 'M', long = "group-by-year-month-album", group = "strategy")]
     year_month_album: bool,
 
-    /// Include assets in the albums matching the given ids
+    /// Include only assets in the albums matching the given ids
     ///
-    /// With album-based grouping, only matching album copies are included.
+    /// This works with every grouping strategy. With album-based grouping, only
+    /// the copies of an asset that belong to a matching album are exported.
+    /// Without album-based grouping, only assets that are part of a matching
+    /// album are exported.
     #[arg(short = 'a',long = "include-by-album",group = "ids",num_args = 1..,value_delimiter = ',')]
     include_by_album: Option<Vec<i32>>,
 
     /// Exclude assets in the albums matching the given ids
     ///
-    /// With album-based grouping, only matching album copies are excluded.
+    /// This works with every grouping strategy. With album-based grouping, only
+    /// the copies of an asset that belong to a matching album are excluded.
+    /// Without album-based grouping, assets that are part of a matching album
+    /// are excluded.
     #[arg(short = 'A',long = "exclude-by-album",group = "ids", num_args = 1..,value_delimiter = ',')]
     exclude_by_album: Option<Vec<i32>>,
 
@@ -205,6 +211,19 @@ fn main() {
                         builder.add_mapper(mappers::OneTaskPerAlbum);
                         builder.add_mapper(mappers::ByAlbum::new(albums, album_path_depth))
                     }
+                }
+
+                // Album filters operate on an AssetMapping's album id, which is
+                // only populated once OneTaskPerAlbum has split an asset into one
+                // mapping per album it belongs to. The album-based grouping
+                // strategies above already add OneTaskPerAlbum, but when an album
+                // filter is used without album-based grouping we add it here as
+                // well, so that the filter has a concrete album id to match
+                // against regardless of the selected grouping strategy.
+                let album_filter_active = export_args.include_by_album.is_some()
+                    || export_args.exclude_by_album.is_some();
+                if album_filter_active && !export_args.album && !export_args.year_month_album {
+                    builder.add_mapper(mappers::OneTaskPerAlbum);
                 }
 
                 if let Some(ids) = &export_args.include_by_album {

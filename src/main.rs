@@ -270,6 +270,12 @@ fn main() {
 
                 let mut export_tasks = builder.build(exportable_assets);
 
+                // OneTaskPerAlbum may have produced several per-album copies of
+                // the same asset (so that album filters could discriminate between
+                // them). Without album-based grouping these copies share the same
+                // destination, so collapse the duplicates before exporting.
+                export_tasks = export::task::dedup::deduplicate_copy_tasks(export_tasks);
+
                 if export_args.delete {
                     let delete_tasks =
                         output_tracking_mapper.create_delete_tasks_for_remaining_files();

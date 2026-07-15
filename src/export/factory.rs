@@ -108,3 +108,93 @@ impl<'a> ExportTaskFactory<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::export::task::mapping::mappers;
+    use crate::model::Library;
+    use crate::model::asset::Asset;
+    use crate::uti::Uti;
+    use std::collections::HashSet;
+    use std::path::PathBuf;
+
+    fn asset(id: i32, album_ids: &[i32]) -> Asset {
+        Asset {
+            id,
+            uuid: format!("uuid-{id}"),
+            dir: format!("dir-{id}"),
+            filename: format!("image-{id}.jpeg"),
+            derivate_uti: Uti::JPEG,
+            datetime: chrono::DateTime::UNIX_EPOCH.naive_utc(),
+            hidden: false,
+            original_filename: format!("image-{id}.jpeg"),
+            has_adjustments: false,
+            data_store_subtypes: vec![],
+            album_ids: HashSet::from_iter(album_ids.iter().copied()),
+        }
+    }
+
+    /// Demo use case: `--include-by-album 42` without any album-based grouping
+    /// strategy. Before the fix, `OneTaskPerAlbum` was never added to the
+    /// pipeline in this configuration, so every `AssetMapping` had
+    /// `album_id: None` and `FilterByAlbumId` matched nothing — the filter was
+    /// a silent no-op. With `OneTaskPerAlbum` added, each asset is split into
+    /// one mapping per album and the filter keeps only the copies whose album
+    /// id matches.
+    #[test]
+    fn include_by_album_filters_without_album_grouping() {
+        let library = Library::new(PathBuf::from("/library"));
+        let mut builder = ExportTaskFactory::new_for_originals(library);
+
+        // Mirror main.rs: no grouping strategy selected, but an album filter is
+        // active, so OneTaskPerAlbum has to run before the filter.
+        builder.add_mapper(mappers::OneTaskPerAlbum);
+        builder.add_mapper(mappers::filter::FilterByAlbumId::new(
+            vec![42],
+            mappers::filter::AlbumFilterMode::Include,
+        ));
+
+        // Asset 1 is in albums 7 and 42 -> only the album-42 copy survives.
+        // Asset 2 is only in album 7 -> dropped entirely.
+        // Asset 3 is in no album -> passes through with album_id None.
+        let tasks = builder.build(vec![asset(1, &[7, 42]), asset(2, &[7]), asset(3, &[])]);
+
+        let album_ids: Vec<Option<i32>> = tasks
+            .iter()
+            .map(|t| match t {
+                ExportTask::Copy(m) => m.album_id,
+                ExportTask::Delete(_) => None,
+            })
+            .collect();
+
+        assert_eq!(album_ids, vec![Some(42), None]);
+    }
+
+    /// Demo use case: `--exclude-by-album 42` without album-based grouping. An
+    /// asset that lives in both a matching and a non-matching album keeps its
+    /// non-matching copy and drops the matching one.
+    #[test]
+    fn exclude_by_album_filters_without_album_grouping() {
+        let library = Library::new(PathBuf::from("/library"));
+        let mut builder = ExportTaskFactory::new_for_originals(library);
+
+        builder.add_mapper(mappers::OneTaskPerAlbum);
+        builder.add_mapper(mappers::filter::FilterByAlbumId::new(
+            vec![42],
+            mappers::filter::AlbumFilterMode::Exclude,
+        ));
+
+        let tasks = builder.build(vec![asset(1, &[7, 42])]);
+
+        let album_ids: Vec<Option<i32>> = tasks
+            .iter()
+            .map(|t| match t {
+                ExportTask::Copy(m) => m.album_id,
+                ExportTask::Delete(_) => None,
+            })
+            .collect();
+
+        assert_eq!(album_ids, vec![Some(7)]);
+    }
+}

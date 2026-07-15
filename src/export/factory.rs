@@ -197,4 +197,40 @@ mod tests {
 
         assert_eq!(album_ids, vec![Some(7)]);
     }
+
+    /// Demo use case for the dedup fix: `--exclude-by-album 42` without
+    /// album-based grouping, applied to an asset that lives in albums 7, 8 and
+    /// 42. `OneTaskPerAlbum` splits the asset into three per-album copies so the
+    /// filter can drop the album-42 copy, leaving copies for albums 7 and 8.
+    /// Without album-based grouping both survivors resolve to the same flat
+    /// destination, so the asset would be exported twice to the same path.
+    /// `deduplicate_copy_tasks` collapses them into a single export.
+    #[test]
+    fn exclude_by_album_without_grouping_yields_single_destination() {
+        let library = Library::new(PathBuf::from("/library"));
+        let mut builder = ExportTaskFactory::new_for_originals(library);
+
+        builder.add_mapper(mappers::OneTaskPerAlbum);
+        builder.add_mapper(mappers::filter::FilterByAlbumId::new(
+            vec![42],
+            mappers::filter::AlbumFilterMode::Exclude,
+        ));
+
+        let tasks = builder.build(vec![asset(1, &[7, 8, 42])]);
+
+        // Before dedup: two copies (album 7 and album 8) sharing one destination.
+        let destinations: Vec<std::path::PathBuf> = tasks
+            .iter()
+            .map(|t| match t {
+                ExportTask::Copy(m) => m.destination_path(),
+                ExportTask::Delete(_) => std::path::PathBuf::new(),
+            })
+            .collect();
+        assert_eq!(destinations.len(), 2);
+        assert_eq!(destinations[0], destinations[1]);
+
+        // After dedup: a single export task remains.
+        let deduped = crate::export::task::dedup::deduplicate_copy_tasks(tasks);
+        assert_eq!(deduped.len(), 1);
+    }
 }

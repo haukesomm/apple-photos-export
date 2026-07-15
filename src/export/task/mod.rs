@@ -1,3 +1,4 @@
+pub mod dedup;
 pub mod mapping;
 
 use crate::model::Library;

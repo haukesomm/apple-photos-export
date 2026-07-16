@@ -67,13 +67,19 @@ pub struct ExportArgs {
 
     /// Include assets in the albums matching the given ids
     ///
-    /// Note: This option only has an effect when using an album-based grouping strategy!
+    /// Works with every grouping strategy. With album-based grouping, only the
+    /// copies of an asset that belong to a matching album are exported. Without
+    /// album-based grouping, only assets that are part of a matching album are
+    /// exported; assets in no album are dropped.
     #[arg(short = 'a',long = "include-by-album",group = "ids",num_args = 1..,value_delimiter = ',')]
     include_by_album: Option<Vec<i32>>,
 
     /// Exclude assets in the albums matching the given ids
     ///
-    /// Note: This option only has an effect when using an album-based grouping strategy!
+    /// Works with every grouping strategy. With album-based grouping, only the
+    /// copies of an asset that belong to a matching album are excluded. Without
+    /// album-based grouping, assets that are part of a matching album are
+    /// excluded; assets in no album are kept.
     #[arg(short = 'A',long = "exclude-by-album",group = "ids", num_args = 1..,value_delimiter = ',')]
     exclude_by_album: Option<Vec<i32>>,
 
@@ -205,6 +211,17 @@ fn main() {
                         builder.add_mapper(mappers::OneTaskPerAlbum);
                         builder.add_mapper(mappers::ByAlbum::new(albums, album_path_depth))
                     }
+                }
+
+                // Album filters match on an AssetMapping's album_id, which is
+                // only populated by OneTaskPerAlbum. The album-based grouping
+                // strategies above already add it; for any other strategy we
+                // add it here so the filter has a concrete album_id to match
+                // against for assets that are part of one or more albums.
+                let album_filter_active = export_args.include_by_album.is_some()
+                    || export_args.exclude_by_album.is_some();
+                if album_filter_active && !export_args.album && !export_args.year_month_album {
+                    builder.add_mapper(mappers::OneTaskPerAlbum);
                 }
 
                 if let Some(ids) = &export_args.include_by_album {

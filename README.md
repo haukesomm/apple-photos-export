@@ -3,11 +3,11 @@
 ![Rust](https://img.shields.io/badge/Rust-d6a672?style=for-the-badge&logo=rust)
 
 This utility program exports all images and videos from an Apple Photos Library to a local directory for backup
-purposes. The library is accessed read-only and does not modify it in any way.
+purposes. The library is accessed read-only and is never modified in any way.
 
 > [!IMPORTANT]
 > The project works by reverse-engineering the Apple Photos Library database and file structure. Thus, it is not
-> guaranteed to work with future versions of the Photos app or at all. Use it at your own risk and always keep a backup
+> guaranteed to work with future versions of the Photos app, or at all. Use it at your own risk and always keep a backup
 > of your library.
 
 ## Highlights
@@ -37,25 +37,25 @@ Compatibility has briefly been tested on the following versions of macOS:
 
 | Generation | Version | Compatibility |
 |------------|---------|---------------|
-| Tahoe      | 26.4    | ✅             |
-| Tahoe      | 26.3    | ✅             |
-| Tahoe      | 26.2    | ✅             |
-| Tahoe      | 26.1    | ❓             |
-| Tahoe      | 26.0    | ✅             | 
-| Sequoia   | 15.6    | ✅             |
-| Sequoia   | 15.5    | ❓             |
-| Sequoia   | 15.4    | ❓             |
-| Sequoia   | 15.3    | ❓             |
-| Sequoia   | 15.2    | ❓             |
-| Sequoia   | 15.1    | ❓             |
-| Sequoia   | 15.0    | ❓             |
-| Sonoma     | 14.6    | ❌             |
-| Sonoma     | 14.5    | ❌             |
-| Sonoma     | 14.4    | ❌             |
-| Sonoma     | 14.3    | ❌             |
-| Sonoma     | 14.2    | ❌             |
-| Sonoma     | 14.1    | ❌             |
-| Sonoma     | 14.0    | ❌             |
+| Tahoe      | 26.4    | ✅            |
+| Tahoe      | 26.3    | ✅            |
+| Tahoe      | 26.2    | ✅            |
+| Tahoe      | 26.1    | ❓            |
+| Tahoe      | 26.0    | ✅            | 
+| Sequoia    | 15.6    | ✅            |
+| Sequoia    | 15.5    | ❓            |
+| Sequoia    | 15.4    | ❓            |
+| Sequoia    | 15.3    | ❓            |
+| Sequoia    | 15.2    | ❓            |
+| Sequoia    | 15.1    | ❓            |
+| Sequoia    | 15.0    | ❓            |
+| Sonoma     | 14.6    | ❌            |
+| Sonoma     | 14.5    | ❌            |
+| Sonoma     | 14.4    | ❌            |
+| Sonoma     | 14.3    | ❌            |
+| Sonoma     | 14.2    | ❌            |
+| Sonoma     | 14.1    | ❌            |
+| Sonoma     | 14.0    | ❌            |
 
 Legend: Compatible (✅), Not yet tested (❓), Incompatible (❌)
 
@@ -83,10 +83,10 @@ $ brew install haukesomm/repo/apple-photos-export
 > Currently, binaries of this app are only provided for __macOS on ARM__, i.e. M-series Macs.  
 > Attempting to install the Homebrew formula on other platforms will result in an unspecific error.
 >
-> Users on other OSs/architectures should be able to build the app locally on most other Unix-like operating systems,
-> though.
+> Users on other OSs/architectures should still be able to build the app locally on most other Unix-like operating
+> systems, though.
 
-Of course, the latest commit can always be built locally as well with no special magic required:
+Of course, the latest commit can always be built locally as well, with no special magic required:
 
 ```shell
 cargo build

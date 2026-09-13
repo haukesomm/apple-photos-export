@@ -37,6 +37,8 @@ Compatibility has briefly been tested on the following versions of macOS:
 
 | Generation | Version | Compatibility |
 |------------|---------|---------------|
+| Tahoe      | 26.6    | ✅            |
+| Tahoe      | 26.5    | ❓            |
 | Tahoe      | 26.4    | ✅            |
 | Tahoe      | 26.3    | ✅            |
 | Tahoe      | 26.2    | ✅            |
